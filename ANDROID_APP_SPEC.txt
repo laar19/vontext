@@ -1,0 +1,759 @@
+# Especificación Técnica: VideoContextBot Android App
+
+## Referencia del Proyecto Original
+
+**Ruta del proyecto original:** `/home/usuario/Desktop/code_testing/opencode/VideoContextBot`
+
+**Propósito de este documento:** Servir como guía completa para que una IA desarrolle una aplicación Android nativa que replique la funcionalidad del proyecto original de Python/Docker.
+
+---
+
+## 1. Resumen Ejecutivo
+
+VideoContextBot es un sistema de procesamiento de videos de grabaciones de pantalla que genera contexto enriquecido para agentes de IA. La aplicación Android debe replicar las siguientes funcionalidades principales:
+
+1. **Subida de videos** desde el dispositivo Android
+2. **Detección automática de pista de audio**
+3. **Extracción inteligente de frames únicos** (detección de escenas o por intervalo)
+4. **Transcripción de audio** usando APIs compatibles con OpenAI Whisper
+5. **Generación de PDF profesional** con frames y transcripción
+6. **Descarga de ZIP** con todos los archivos de output
+7. **Seguimiento de progreso** en tiempo real
+
+---
+
+## 2. Arquitectura del Sistema Original
+
+### 2.1 Servicios Docker (Backend Actual)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Docker Compose                          │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Redis     │  │  FastAPI    │  │   Celery Worker     │  │
+│  │   Broker    │  │  API :8000  │  │   Procesamiento     │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ Celery Beat │  │ Telegram    │  │   Gradio Web UI     │  │
+│  │ Limpieza    │  │ Bot         │  │   :7860             │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 Flujo de Procesamiento
+
+```
+1. Upload → 2. Validate → 3. Create Job → 4. Queue Task → 5. Process → 6. Deliver
+```
+
+**Detalle del paso 5 (Process):**
+- 5.1: Detectar audio (pymediainfo)
+- 5.2: Extraer frames (PySceneDetect + OpenCV)
+- 5.3: Transcribir si hay audio (Whisper API)
+- 5.4: Generar PDF (fpdf2)
+- 5.5: Crear ZIP
+
+---
+
+## 3. Funcionalidades a Implementar en Android
+
+### 3.1 Interfaz de Usuario (UI)
+
+#### Pantalla Principal
+- **Selector de video:** Intent para seleccionar video de galería o cámara
+- **Campo de notas:** TextArea para notas adicionales opcionales
+- **Selector de intervalo:** Slider (0-30 segundos, 0 = Auto/detección de escenas)
+- **Botón procesar:** Inicia el procesamiento
+- **Barra de progreso:** Actualización en tiempo real
+- **Logs:** TextView con logs del procesamiento
+
+#### Pantalla de Resultados
+- **Estado:** Completado/Fallido
+- **PDF:** Botón de descarga/visualización
+- **ZIP:** Botón de descarga
+- **Historial:** Lista de jobs anteriores
+
+### 3.2 Procesamiento de Video
+
+#### Detección de Audio
+```kotlin
+// Usar MediaMetadataRetriever o MediaExtractor
+fun hasAudioTrack(videoPath: String): Boolean {
+    val retriever = MediaMetadataRetriever()
+    retriever.setDataSource(videoPath)
+    val hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)
+    return hasAudio == "yes"
+}
+```
+
+#### Extracción de Frames
+
+**Opción A: Detección de Escenas (Recomendado)**
+- Usar biblioteca como `SceneDetect` portada a Kotlin/Java
+- O implementar detección de cambios de histograma con OpenCV Android
+
+**Opción B: Por Intervalo**
+```kotlin
+fun extractFramesByInterval(videoPath: String, intervalSeconds: Int): List<FrameInfo> {
+    val retriever = MediaMetadataRetriever()
+    retriever.setDataSource(videoPath)
+    val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION).toLong()
+    
+    val frames = mutableListOf<FrameInfo>()
+    var currentTime = 0L
+    
+    while (currentTime < duration) {
+        val bitmap = retriever.getFrameAtTime(currentTime * 1000, OPTION_CLOSEST)
+        // Guardar bitmap como JPG
+        currentTime += intervalSeconds * 1000
+    }
+    
+    return frames
+}
+```
+
+**Límites:**
+- Mínimo: 10 frames
+- Máximo: 50 frames
+- Si excede 50, subsamplear equidistantemente
+
+### 3.3 Transcripción de Audio
+
+#### API Whisper (OpenAI-Compatible)
+```kotlin
+data class TranscriptionRequest(
+    val file: File,
+    val model: String = "whisper-large-v3",
+    val response_format: String = "verbose_json",
+    val timestamp_granularities: List<String> = listOf("segment")
+)
+
+data class TranscriptionResponse(
+    val text: String,
+    val language: String,
+    val segments: List<Segment>
+)
+
+data class Segment(
+    val start: Double,
+    val end: Double,
+    val text: String
+)
+```
+
+**Configuración desde .env:**
+- `OPENAI_API_KEY`: API key del proveedor
+- `OPENAI_BASE_URL`: Base URL (null para OpenAI oficial, `https://api.groq.com/openai/v1` para Groq)
+- `WHISPER_MODEL`: Modelo a usar
+
+### 3.4 Generación de PDF
+
+#### Estructura del PDF
+1. **Por frame:**
+   - Timestamp (MM:SS o HH:MM:SS)
+   - Transcripción relevante (ventana ±7.5 segundos alrededor del timestamp)
+   - Imagen del frame (redimensionada a max 1920px width)
+
+2. **Página final:**
+   - Transcripción completa con timestamps
+
+#### Biblioteca Recomendada
+- **iText 7** o **PdfDocument** (Android SDK nativo)
+- Soporte Unicode requerido para caracteres especiales
+
+```kotlin
+fun generatePdf(
+    context: Context,
+    videoFilename: String,
+    hasAudio: Boolean,
+    duration: String,
+    frames: List<FrameInfo>,
+    transcription: TranscriptionResponse?,
+    notes: String?
+): File {
+    // Implementar con PdfDocument o iText
+}
+```
+
+### 3.5 Creación de ZIP
+
+```kotlin
+fun createZip(outputFolder: File): File {
+    val zipFile = File(outputFolder.parent, "${outputFolder.name}.zip")
+    ZipOutputStream(FileOutputStream(zipFile)).use { zos ->
+        outputFolder.walkTopDown().filter { it.isFile }.forEach { file ->
+            val entry = ZipEntry(file.relativeTo(outputFolder.parent).path)
+            zos.putNextEntry(entry)
+            file.inputStream().copyTo(zos)
+            zos.closeEntry()
+        }
+    }
+    return zipFile
+}
+```
+
+---
+
+## 4. Arquitectura Android Recomendada
+
+### 4.1 Stack Tecnológico
+
+```
+┌────────────────────────────────────────────────────┐
+│              Android Application                    │
+├────────────────────────────────────────────────────┤
+│  UI Layer                                           │
+│  ├── Jetpack Compose (Recomendado)                 │
+│  └── ViewBinding (Alternativa)                     │
+├────────────────────────────────────────────────────┤
+│  ViewModel Layer                                    │
+│  ├── ViewModel + StateFlow                         │
+│  └── Hilt/Dagger para DI                           │
+├────────────────────────────────────────────────────┤
+│  Repository Layer                                   │
+│  ├── VideoRepository                               │
+│  ├── TranscriptionRepository                       │
+│  └── JobRepository (SQLite/Room)                   │
+├────────────────────────────────────────────────────┤
+│  Data Layer                                         │
+│  ├── Retrofit (API calls)                          │
+│  ├── Room (Base de datos local)                    │
+│  └── WorkManager (Background processing)           │
+└────────────────────────────────────────────────────┘
+```
+
+### 4.2 Base de Datos Local (Room)
+
+```kotlin
+@Entity(tableName = "jobs")
+data class Job(
+    @PrimaryKey val jobId: String,
+    val status: JobStatus,
+    val videoPath: String,
+    val videoFilename: String,
+    val hasAudio: Boolean?,
+    val videoDuration: String?,
+    val additionalNotes: String?,
+    val progress: Int,
+    val progressMessage: String,
+    val errorMessage: String?,
+    val createdAt: Long,
+    val startedAt: Long?,
+    val completedAt: Long?,
+    val outputFolder: String?,
+    val pdfPath: String?,
+    val zipPath: String?,
+    val frameInterval: Int?
+)
+
+enum class JobStatus {
+    PENDING,
+    PROCESSING,
+    COMPLETED,
+    FAILED,
+    CANCELLED
+}
+```
+
+### 4.3 Background Processing
+
+**WorkManager para procesamiento asíncrono:**
+
+```kotlin
+class VideoProcessingWorker(
+    context: Context,
+    params: WorkerParameters
+) : CoroutineWorker(context, params) {
+
+    override suspend fun doWork(): Result {
+        val jobId = inputData.getString("job_id") ?: return Result.failure()
+        
+        // Actualizar progreso
+        setProgress(workDataOf("progress" to 10, "message" to "Analizando video..."))
+        
+        // Ejecutar procesamiento
+        val result = processVideo(jobId)
+        
+        return if (result.success) Result.success() else Result.failure()
+    }
+}
+```
+
+---
+
+## 5. API Endpoints (si se mantiene backend)
+
+### 5.1 Endpoints Existentes
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/api/jobs` | Crear job de procesamiento |
+| GET | `/api/jobs` | Listar jobs (filtro por status) |
+| GET | `/api/jobs/{job_id}` | Obtener estado de job |
+| GET | `/api/jobs/{job_id}/pdf` | Descargar PDF |
+| GET | `/api/jobs/{job_id}/zip` | Descargar ZIP |
+| DELETE | `/api/jobs/{job_id}` | Cancelar/eliminar job |
+| GET | `/health` | Health check |
+
+### 5.2 Request/Response Ejemplo
+
+**POST /api/jobs:**
+```bash
+curl -X POST http://localhost:8000/api/jobs \
+  -F "video=@/ruta/a/tu/video.mp4" \
+  -F "notes=Notas adicionales opcionales"
+```
+
+**Response:**
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "pending",
+  "message": "Job creado exitosamente..."
+}
+```
+
+**GET /api/jobs/{job_id}:**
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "processing",
+  "filename": "video.mp4",
+  "has_audio": true,
+  "video_duration": "120.5",
+  "progress": 45,
+  "progress_message": "Transcribiendo audio con Whisper...",
+  "created_at": "2026-05-30T10:00:00Z",
+  "started_at": "2026-05-30T10:00:05Z"
+}
+```
+
+---
+
+## 6. Configuración y Variables de Entorno
+
+### 6.1 Variables Requeridas
+
+```kotlin
+// Configurar en BuildConfig o archivo de configuración
+object AppConfig {
+    const val OPENAI_API_KEY = "tu-api-key"
+    const val OPENAI_BASE_URL = "https://api.groq.com/openai/v1" // o null para OpenAI
+    const val WHISPER_MODEL = "whisper-large-v3"
+    
+    // Límites
+    const val MAX_VIDEO_SIZE_MB = 2048
+    const val SCENE_DETECT_THRESHOLD = 15.0f
+    const val MIN_FRAME_COUNT = 10
+    const val MAX_FRAME_COUNT = 50
+    const val FRAME_INTERVAL_SECONDS = 10
+    
+    // Cleanup
+    const val TEMP_CLEANUP_HOURS = 24
+    const val OUTPUT_CLEANUP_HOURS = 48
+}
+```
+
+### 6.2 Permisos Android Requeridos
+
+```xml
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+```
+
+---
+
+## 7. Estructura de Archivos del Proyecto Android
+
+```
+VideoContextBotAndroid/
+├── app/
+│   ├── src/
+│   │   └── main/
+│   │       ├── java/com/videocontextbot/
+│   │       │   ├── MainActivity.kt
+│   │       │   ├── ui/
+│   │       │   │   ├── theme/
+│   │       │   │   ├── screens/
+│   │       │   │   │   ├── HomeScreen.kt
+│   │       │   │   │   ├── ProcessingScreen.kt
+│   │       │   │   │   └── ResultsScreen.kt
+│   │       │   │   └── components/
+│   │       │   │       ├── VideoPicker.kt
+│   │       │   │       ├── NotesInput.kt
+│   │       │   │       └── ProgressIndicator.kt
+│   │       │   ├── viewmodel/
+│   │       │   │   └── VideoViewModel.kt
+│   │       │   ├── data/
+│   │       │   │   ├── repository/
+│   │       │   │   │   ├── VideoRepository.kt
+│   │       │   │   │   └── JobRepository.kt
+│   │       │   │   ├── local/
+│   │       │   │   │   ├── dao/
+│   │       │   │   │   │   └── JobDao.kt
+│   │       │   │   │   └── database/
+│   │       │   │   │       └── AppDatabase.kt
+│   │       │   │   └── remote/
+│   │       │   │       ├── api/
+│   │       │   │       │   └── TranscriptionApi.kt
+│   │       │   │       └── dto/
+│   │       │   │           └── TranscriptionDto.kt
+│   │       │   ├── domain/
+│   │       │   │   ├── model/
+│   │       │   │   │   ├── Job.kt
+│   │       │   │   │   ├── FrameInfo.kt
+│   │       │   │   │   └── TranscriptionSegment.kt
+│   │       │   │   └── usecase/
+│   │       │   │       ├── ProcessVideoUseCase.kt
+│   │       │   │       ├── ExtractFramesUseCase.kt
+│   │       │   │       └── TranscribeAudioUseCase.kt
+│   │       │   ├── processor/
+│   │       │   │   ├── VideoProcessor.kt
+│   │       │   │   ├── FrameExtractor.kt
+│   │       │   │   ├── AudioDetector.kt
+│   │       │   │   ├── PdfGenerator.kt
+│   │       │   │   └── ZipCreator.kt
+│   │       │   ├── worker/
+│   │       │   │   └── VideoProcessingWorker.kt
+│   │       │   └── util/
+│   │       │       ├── Constants.kt
+│   │       │       ├── Extensions.kt
+│   │       │       └── TimestampFormatter.kt
+│   │       ├── res/
+│   │       │   ├── values/
+│   │       │   ├── drawable/
+│   │       │   └── xml/
+│   │       └── AndroidManifest.xml
+│   └── build.gradle.kts
+├── gradle/
+├── build.gradle.kts
+└── settings.gradle.kts
+```
+
+---
+
+## 8. Dependencias Gradle Recomendadas
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+    // Core Android
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.activity:activity-compose:1.8.2")
+    
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2024.01.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.material3:material3")
+    
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.6")
+    
+    // Room Database
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    
+    // Retrofit (si usa backend)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    
+    // OpenCV (procesamiento de video)
+    implementation("com.quickbirdstudios:opencv:4.8.0")
+    
+    // PDF Generation
+    implementation("com.itextpdf:itext7-core:7.2.5")
+    // O usar PdfDocument nativo
+    
+    // ZIP
+    // Nativo con java.util.zip
+    
+    // Dependency Injection (Hilt)
+    implementation("com.google.dagger:hilt-android:2.48.1")
+    ksp("com.google.dagger:hilt-compiler:2.48.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
+}
+```
+
+---
+
+## 9. Formatos Soportados
+
+| Tipo | Formatos | Tamaño Máximo |
+|------|----------|---------------|
+| Video | MP4, MKV, AVI, MOV, WebM | 2GB (configurable) |
+| Audio | Cualquier codec soportado por ffmpeg | - |
+| Notas | Texto plano, archivo .txt | - |
+
+---
+
+## 10. Estados del Job
+
+```kotlin
+enum class JobStatus(val description: String) {
+    PENDING("Esperando procesamiento..."),
+    PROCESSING("Procesando..."),
+    COMPLETED("Completado"),
+    FAILED("Fallido"),
+    CANCELLED("Cancelado")
+}
+```
+
+**Transiciones:**
+```
+PENDING → PROCESSING → COMPLETED
+                      → FAILED
+PENDING → CANCELLED
+PROCESSING → CANCELLED
+```
+
+---
+
+## 11. Estrategias de Implementación
+
+### Opción A: App Nativa con Procesamiento Local (Recomendado para privacidad)
+
+**Ventajas:**
+- Sin dependencia de servidor
+- Procesamiento offline
+- Mayor privacidad
+
+**Desventajas:**
+- Mayor consumo de batería
+- Limitaciones de hardware del dispositivo
+- APIs de Whisper requieren conexión (si no se usa modelo local)
+
+### Opción B: App Cliente + Backend Existente
+
+**Ventajas:**
+- Reutiliza infraestructura actual
+- Procesamiento más rápido en servidor
+- Menor consumo en dispositivo
+
+**Desventajas:**
+- Requiere conexión constante
+- Dependencia del servidor
+
+### Opción C: Híbrida
+
+- Procesamiento local de frames y PDF
+- Transcripción vía API externa (Groq/OpenAI)
+- Opcionalmente conectarse al backend existente para jobs pesados
+
+---
+
+## 12. Consideraciones de Rendimiento
+
+### 12.1 Optimización de Extracción de Frames
+
+```kotlin
+// Usar bitmap configurado para reducir memoria
+val options = BitmapFactory.Options().apply {
+    inSampleSize = calculateSampleSize(width, height, 1920)
+    inPreferredConfig = Bitmap.Config.RGB_565 // Menos memoria que ARGB_8888
+}
+```
+
+### 12.2 Background Processing
+
+- Usar **WorkManager** con `setRequiresCharging(true)` para videos grandes
+- Notificaciones de progreso en foreground service
+- Manejar configuración de pantalla (rotación) con ViewModel
+
+### 12.3 Gestión de Memoria
+
+```kotlin
+// Liberar bitmaps después de usar
+fun Bitmap.recycleIfNeeded() {
+    if (!isRecycled) {
+        recycle()
+    }
+}
+
+// Usar Glide/Picasso para carga eficiente de imágenes
+```
+
+---
+
+## 13. Testing
+
+### 13.1 Tests Unitarios
+
+```kotlin
+@Test
+fun `extract frames by interval should return correct count`() {
+    // Given
+    val videoPath = "test_video.mp4"
+    val intervalSeconds = 10
+    
+    // When
+    val frames = frameExtractor.extractByInterval(videoPath, intervalSeconds)
+    
+    // Then
+    assertTrue(frames.size in 10..50)
+}
+```
+
+### 13.2 Tests de UI (Compose)
+
+```kotlin
+@Test
+fun `processing screen shows progress update`() {
+    composeTestRule.setContent {
+        ProcessingScreen(progress = 45, message = "Transcribiendo...")
+    }
+    
+    composeTestRule
+        .onNodeWithText("45%")
+        .assertIsDisplayed()
+}
+```
+
+---
+
+## 14. Checklist de Implementación
+
+### Fase 1: Setup
+- [ ] Configurar proyecto Android con Compose
+- [ ] Configurar Room Database
+- [ ] Configurar WorkManager
+- [ ] Implementar modelo de datos Job
+
+### Fase 2: UI Básica
+- [ ] Pantalla principal con selector de video
+- [ ] Input de notas
+- [ ] Slider de intervalo
+- [ ] Botón de procesar
+
+### Fase 3: Procesamiento
+- [ ] Implementar detección de audio
+- [ ] Implementar extracción de frames por intervalo
+- [ ] Implementar extracción con detección de escenas (OpenCV)
+- [ ] Implementar llamada a API Whisper
+- [ ] Implementar generador de PDF
+- [ ] Implementar creador de ZIP
+
+### Fase 4: Background
+- [ ] Implementar VideoProcessingWorker
+- [ ] Actualizar progreso en UI
+- [ ] Manejar cancelación
+
+### Fase 5: Resultados
+- [ ] Pantalla de resultados
+- [ ] Visualizador de PDF
+- [ ] Descarga de ZIP
+- [ ] Historial de jobs
+
+### Fase 6: Pulido
+- [ ] Manejo de errores
+- [ ] Notificaciones
+- [ ] Optimización de memoria
+- [ ] Tests
+
+---
+
+## 15. Recursos y Referencias
+
+### 15.1 Documentación Oficial
+- [Android Developers](https://developer.android.com/)
+- [Jetpack Compose](https://developer.android.com/jetpack/compose)
+- [Room Database](https://developer.android.com/training/data-storage/room)
+- [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager)
+- [OpenCV Android](https://docs.opencv.org/4.x/d8/d63/group__java__android__service.html)
+
+### 15.2 Bibliotecas
+- [iText PDF](https://itextpdf.com/en/products/itext-7)
+- [Retrofit](https://square.github.io/retrofit/)
+- [Hilt](https://dagger.dev/hilt/)
+
+### 15.3 APIs de Transcripción
+- [OpenAI Whisper](https://platform.openai.com/docs/guides/speech-to-text)
+- [Groq API](https://console.groq.com/docs/quickstart)
+- [DeepSeek API](https://platform.deepseek.com/api-docs/)
+
+---
+
+## 16. Notas Finales
+
+### 16.1 Diferencias Clave con el Proyecto Original
+
+1. **Sin Docker:** La app Android es standalone
+2. **Sin Celery/Redis:** Usar WorkManager en su lugar
+3. **Sin Telegram Bot:** Reemplazado con notificaciones push nativas
+4. **Sin Gradio:** UI nativa con Compose
+5. **SQLite local:** En vez de SQLite en volumen Docker
+
+### 16.2 Mejoras Potenciales sobre el Original
+
+1. **Procesamiento offline:** Sin dependencia de internet (excepto Whisper API)
+2. **Notificaciones nativas:** Mejor UX que Telegram
+3. **Historial local:** Acceso rápido a jobs anteriores
+4. **Compartir directamente:** Integration con otras apps Android
+
+### 16.3 Limitaciones a Considerar
+
+1. **Batería:** Procesamiento de video consume mucha energía
+2. **Calor:** Dispositivos pueden calentarse con procesamiento largo
+3. **Memoria:** Limitada comparada con servidor
+4. **Almacenamiento:** Videos de 2GB ocupan espacio significativo
+
+---
+
+## 17. Comandos Útiles del Proyecto Original (para referencia)
+
+```bash
+# Ver logs del worker
+docker-compose logs -f celery-worker
+
+# Ver jobs en DB
+docker-compose exec api python -c "
+from app.database import SessionLocal
+from app.models import Job
+db = SessionLocal()
+jobs = db.query(Job).order_by(Job.created_at.desc()).limit(10).all()
+for job in jobs:
+    print(f'{job.job_id[:8]} - {job.status.value} - {job.video_filename}')
+"
+
+# Limpiar archivos temp antiguos
+find ./temp -type d -mmin +1440 -exec rm -rf {} \;
+```
+
+---
+
+## 18. Rutas Importantes
+
+| Archivo/Directorio | Ruta |
+|-------------------|------|
+| **Proyecto original** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot` |
+| **Este documento** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/ANDROID_APP_SPEC.md` |
+| **Código principal** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app` |
+| **Procesador de video** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app/processor` |
+| **API FastAPI** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app/main.py` |
+| **Worker Celery** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app/tasks.py` |
+| **Bot Telegram** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app/telegram_bot` |
+| **Web UI Gradio** | `/home/usuario/Desktop/code_testing/opencode/VideoContextBot/app/web` |
+
+---
+
+**Documento generado para:** Desarrollo de Android App equivalente a VideoContextBot  
+**Fecha de generación:** 2026-05-30
