@@ -1,14 +1,57 @@
-// whisper-jni.cpp
-// JNI wrapper para whisper.cpp
-
+#include "whisper.h"
 #include <jni.h>
 #include <string>
 #include <vector>
-#include "whisper.h"
+#include <fstream>
+#include <cstdint>
 
 extern "C" {
 
-// Inicializar modelo Whisper
+static std::vector<float> loadWavFile(const char* filename) {
+    std::ifstream file(filename, std::ios::binary);
+    if (!file) {
+        return {};
+    }
+
+    char header[44];
+    file.read(header, 44);
+    
+    if (header[0] != 'R' || header[1] != 'I' || header[2] != 'F' || header[3] != 'F') {
+        return {};
+    }
+
+    int bitsPerSample = header[34];
+    int audioFormat = header[22];
+    
+    if (audioFormat != 1 && audioFormat != 3) {
+        return {};
+    }
+
+    std::vector<int16_t> samples16;
+    if (bitsPerSample == 16) {
+        int16_t sample;
+        while (file.read(reinterpret_cast<char*>(&sample), 2)) {
+            samples16.push_back(sample);
+        }
+        
+        std::vector<float> samples;
+        samples.reserve(samples16.size());
+        for (int16_t s : samples16) {
+            samples.push_back(s / 32768.0f);
+        }
+        return samples;
+    } else if (bitsPerSample == 32) {
+        std::vector<float> samples;
+        float sample;
+        while (file.read(reinterpret_cast<char*>(&sample), 4)) {
+            samples.push_back(sample);
+        }
+        return samples;
+    }
+
+    return {};
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_initModel(
     JNIEnv* env,
@@ -16,26 +59,18 @@ Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_initModel(
     jstring modelPath
 ) {
     const char* path = env->GetStringUTFChars(modelPath, nullptr);
-    
-    whisper_context_params params = whisper_context_default_params();
-    params.use_gpu = false;  // CPU-only para compatibilidad
-    
-    whisper_context* ctx = whisper_init_from_file(path, params);
-    
-    env->ReleaseStringUTFChars(modelPath, path);
-    
-    if (ctx == nullptr) {
-        env->ThrowNew(
-            env->FindClass("java/lang/IllegalStateException"),
-            "Failed to initialize Whisper model"
-        );
+    if (path == nullptr) {
         return 0;
     }
-    
+
+    struct whisper_context_params params = whisper_context_default_params();
+    whisper_context* ctx = whisper_init_from_file_with_params(path, params);
+
+    env->ReleaseStringUTFChars(modelPath, path);
+
     return reinterpret_cast<jlong>(ctx);
 }
 
-// Transcribir audio
 JNIEXPORT jobject JNICALL
 Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_transcribe(
     JNIEnv* env,
@@ -44,108 +79,93 @@ Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_transcribe(
     jlong pointer
 ) {
     whisper_context* ctx = reinterpret_cast<whisper_context*>(pointer);
-    
     if (ctx == nullptr) {
-        env->ThrowNew(
-            env->FindClass("java/lang/IllegalStateException"),
-            "Whisper context not initialized"
-        );
         return nullptr;
     }
-    
-    const char* audio_file = env->GetStringUTFChars(audioPath, nullptr);
-    
-    // Parámetros de transcripción
-    whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-    wparams.print_progress = false;
-    wparams.print_special = false;
+
+    const char* path = env->GetStringUTFChars(audioPath, nullptr);
+    if (path == nullptr) {
+        return nullptr;
+    }
+
+    std::vector<float> samples = loadWavFile(path);
+    env->ReleaseStringUTFChars(audioPath, path);
+
+    if (samples.empty()) {
+        return nullptr;
+    }
+
+    struct whisper_full_params wparams = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
     wparams.print_realtime = false;
-    wparams.print_timestamps = true;
+    wparams.print_progress = false;
+    wparams.print_timestamps = false;
+    wparams.print_special = false;
     wparams.translate = false;
-    wparams.n_threads = 4;  // Usar múltiples threads
+    wparams.language = nullptr;
+    wparams.n_threads = 4;
     wparams.offset_ms = 0;
-    wparams.duration_ms = 0;
-    
-    // Ejecutar transcripción
-    int result = whisper_full(ctx, wparams, audio_file);
-    
-    env->ReleaseStringUTFChars(audioPath, audio_file);
-    
-    if (result != 0) {
-        env->ThrowNew(
-            env->FindClass("java/lang/RuntimeException"),
-            "Whisper transcription failed"
-        );
+    wparams.no_context = true;
+    wparams.single_segment = false;
+
+    int resultCode = whisper_full(ctx, wparams, samples.data(), static_cast<int>(samples.size()));
+    if (resultCode != 0) {
         return nullptr;
     }
-    
-    // Construir objeto TranscriptionResult
-    jclass resultClass = env->FindClass("com/videocontextbot/domain/model/TranscriptionSegment");
-    jmethodID segmentCtor = env->GetMethodID(resultClass, "<init>", "(FFLjava/lang/String;)V");
-    
-    jobjectArrayList = env->NewObjectArrayList();
-    
+
     const int n_segments = whisper_full_n_segments(ctx);
-    
-    std::string fullText;
-    std::string detectedLanguage;
-    
+    std::string full_text;
+    std::string detected_language = whisper_lang_str(whisper_full_lang_id(ctx));
+
+    jclass resultClass = env->FindClass("com/videocontextbot/processor/whisper/TranscriptionResult");
+    jclass segmentClass = env->FindClass("com/videocontextbot/domain/model/TranscriptionSegment");
+    jclass arrayListClass = env->FindClass("java/util/ArrayList");
+    jmethodID arrayListInit = env->GetMethodID(arrayListClass, "<init>", "()V");
+    jmethodID arrayListAdd = env->GetMethodID(arrayListClass, "add", "(Ljava/lang/Object;)Z");
+
+    jobject segmentList = env->NewObject(arrayListClass, arrayListInit);
+
     for (int i = 0; i < n_segments; ++i) {
         const char* text = whisper_full_get_segment_text(ctx, i);
-        const int64_t start_ms = whisper_full_get_segment_t0(ctx, i) * 10;  // a segundos
-        const int64_t end_ms = whisper_full_get_segment_t1(ctx, i) * 10;
-        
-        // Crear segmento
-        jstring jText = env->NewStringUTF(text);
-        jobject segment = env->NewObject(
-            resultClass,
-            segmentCtor,
-            (float)start_ms / 1000.0f,
-            (float)end_ms / 1000.0f,
-            jText
+        const int64_t t0 = whisper_full_get_segment_t0(ctx, i);
+        const int64_t t1 = whisper_full_get_segment_t1(ctx, i);
+
+        if (i > 0) full_text += " ";
+        full_text += text;
+
+        jmethodID segmentInit = env->GetMethodID(
+            segmentClass, "<init>", "(FFLjava/lang/String;)V"
         );
-        
-        env->DeleteLocalRef(jText);
-        env->CallVoidMethod(arrayList, addMethod, segment);
+        jstring segmentText = env->NewStringUTF(text);
+        jobject segment = env->NewObject(
+            segmentClass, segmentInit,
+            static_cast<float>(t0) / 100.0f,
+            static_cast<float>(t1) / 100.0f,
+            segmentText
+        );
+        env->CallBooleanMethod(segmentList, arrayListAdd, segment);
+        env->DeleteLocalRef(segmentText);
         env->DeleteLocalRef(segment);
-        
-        // Acumular texto completo
-        if (i > 0) fullText += " ";
-        fullText += text;
-        
-        // Detectar idioma (primer segmento)
-        if (i == 0) {
-            detectedLanguage = whisper_lang_str(whisper_full_lang_id(ctx));
-        }
     }
-    
-    // Crear TranscriptionResult
-    jclass transcriptionClass = env->FindClass("com/videocontextbot/processor/transcription/TranscriptionResult");
-    jmethodID transcriptionCtor = env->GetMethodID(
-        transcriptionClass,
-        "<init>",
+
+    jmethodID resultInit = env->GetMethodID(
+        resultClass, "<init>",
         "(Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V"
     );
-    
-    jstring jFullText = env->NewStringUTF(fullText.c_str());
-    jstring jLanguage = env->NewStringUTF(detectedLanguage.c_str());
-    
-    jobject transcriptionResult = env->NewObject(
-        transcriptionClass,
-        transcriptionCtor,
-        jFullText,
-        jLanguage,
-        arrayList
+    jstring resultText = env->NewStringUTF(full_text.c_str());
+    jstring resultLang = env->NewStringUTF(detected_language.c_str());
+
+    jobject resultObj = env->NewObject(
+        resultClass, resultInit,
+        resultText, resultLang, segmentList
     );
-    
-    // Cleanup
-    env->DeleteLocalRef(jFullText);
-    env->DeleteLocalRef(jLanguage);
-    
-    return transcriptionResult;
+
+    env->DeleteLocalRef(resultText);
+    env->DeleteLocalRef(resultLang);
+    env->DeleteLocalRef(segmentList);
+
+    return resultObj;
 }
 
-// Liberar modelo
 JNIEXPORT void JNICALL
 Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_freeModel(
     JNIEnv* env,
@@ -153,7 +173,6 @@ Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_freeModel(
     jlong pointer
 ) {
     whisper_context* ctx = reinterpret_cast<whisper_context*>(pointer);
-    
     if (ctx != nullptr) {
         whisper_free(ctx);
     }

@@ -10,7 +10,6 @@ class VideoContextApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Setup Timber logging
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }

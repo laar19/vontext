@@ -22,15 +22,20 @@ RUN apt-get update && apt-get install -y \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=$JAVA_HOME/bin:$PATH
 
-# Crear usuario no-root para build
-RUN useradd -m -s /bin/bash builder
-USER builder
-WORKDIR /home/builder
+# Instalar Gradle
+ENV GRADLE_VERSION=8.5
+RUN wget --no-verbose https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -O /tmp/gradle.zip && \
+    unzip -q /tmp/gradle.zip -d /opt/ && \
+    rm /tmp/gradle.zip && \
+    ln -s /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+
+# Configurar Android SDK
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+ENV ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125
+ENV ANDROID_NDK=$ANDROID_NDK_HOME
 
 # Instalar Android SDK command-line tools
-ENV ANDROID_HOME=/home/builder/android-sdk
-ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-
 RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
     cd $ANDROID_HOME/cmdline-tools && \
     wget --no-verbose https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip && \
@@ -38,7 +43,7 @@ RUN mkdir -p $ANDROID_HOME/cmdline-tools && \
     mv cmdline-tools latest && \
     rm cmdline-tools.zip
 
-# Aceptar licencias Android (silencioso)
+# Aceptar licencias Android
 RUN mkdir -p $ANDROID_HOME/licenses && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license && \
     echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
@@ -52,27 +57,15 @@ RUN sdkmanager --install \
     "ndk;26.1.10909125" \
     "cmake;3.22.1"
 
-# Instalar Gradle
-ENV GRADLE_VERSION=8.5
-RUN wget --no-verbose https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -O /tmp/gradle.zip && \
-    unzip -q /tmp/gradle.zip -d /opt/ && \
-    rm /tmp/gradle.zip && \
-    ln -s /opt/gradle-${GRADLE_VERSION}/bin/gradle /usr/local/bin/gradle
+# Configurar Gradle para usar /tmp
+ENV GRADLE_USER_HOME=/tmp/gradle-home
 
-# Variables de entorno para build nativo
-ENV ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.1.10909125
-ENV ANDROID_NDK=$ANDROID_NDK_HOME
-ENV CMAKE_ROOT=$ANDROID_HOME/cmake/3.22.1
-
-# Configurar Gradle cache
-ENV GRADLE_USER_HOME=/home/builder/.gradle
-
-# Directorio de trabajo del proyecto
-WORKDIR /home/builder/project
+# Directorio de trabajo
+WORKDIR /project
 
 # Copiar script de build
-COPY --chown=builder:builder build.sh /home/builder/build.sh
-RUN chmod +x /home/builder/build.sh
+COPY docker/build.sh /build.sh
+RUN chmod +x /build.sh
 
 # Comando por defecto
-CMD ["/home/builder/build.sh"]
+CMD ["/build.sh"]
