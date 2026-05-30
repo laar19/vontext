@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VideoContextBot</string>
+    
+    <!-- Home Screen -->
+    <string name="select_video">Seleccionar video</string>
+    <string name="video_selected">Video seleccionado</string>
+    <string name="notes_label">Notas adicionales (opcional)</string>
+    <string name="notes_hint">Escribe notas aquí…</string>
+    <string name="frame_interval_label">Intervalo de frames</string>
+    <string name="frame_interval_auto">Auto (detección de escenas)</string>
+    <string name="frame_interval_seconds">%d segundos</string>
+    <string name="process_button">Procesar Video</string>
+    
+    <!-- Processing Screen -->
+    <string name="processing_title">Procesando…</string>
+    <string name="progress_percent">%d%%</string>
+    <string name="cancel_button">Cancelar</string>
+    <string name="logs_title">Logs:</string>
+    
+    <!-- Results Screen -->
+    <string name="results_title">Resultados</string>
+    <string name="view_pdf_button">Ver PDF</string>
+    <string name="share_zip_button">Compartir ZIP</string>
+    <string name="job_completed">Completado</string>
+    <string name="job_failed">Fallido</string>
+    <string name="job_processing">Procesando</string>
+    
+    <!-- Settings Screen -->
+    <string name="settings_title">Configuración</string>
+    <string name="whisper_mode_label">Modo de transcripción</string>
+    <string name="whisper_local_tiny">Local - Tiny (75 MB)</string>
+    <string name="whisper_local_base">Local - Base (142 MB)</string>
+    <string name="whisper_local_small">Local - Small (466 MB)</string>
+    <string name="whisper_local_medium">Local - Medium (1.5 GB)</string>
+    <string name="whisper_remote_openai">Remoto - OpenAI</string>
+    <string name="whisper_remote_groq">Remoto - Groq</string>
+    <string name="api_key_label">API Key</string>
+    <string name="base_url_label">Base URL</string>
+    <string name="save_button">Guardar</string>
+    
+    <!-- History Screen -->
+    <string name="history_title">Historial</string>
+    <string name="no_jobs">No hay jobs en el historial</string>
+    <string name="delete_job">Eliminar</string>
+    
+    <!-- Processing Messages -->
+    <string name="msg_preparing">Preparando directorios…</string>
+    <string name="msg_analyzing">Analizando video…</string>
+    <string name="msg_extracting_frames">Extrayendo frames…</string>
+    <string name="msg_transcribing">Transcribiendo audio…</string>
+    <string name="msg_generating_pdf">Generando PDF…</string>
+    <string name="msg_creating_zip">Creando archivo ZIP…</string>
+    <string name="msg_completed">¡Procesamiento completado!</string>
+    
+    <!-- Errors -->
+    <string name="error_no_video">No se seleccionó ningún video</string>
+    <string name="error_invalid_format">Formato de video no soportado</string>
+    <string name="error_file_too_large">El video excede el tamaño máximo (%d MB)</string>
+    <string name="error_no_audio">El video no tiene pista de audio</string>
+    <string name="error_processing">Error en el procesamiento: %s</string>
+    <string name="error_download_model">Error al descargar modelo</string>
+    
+    <!-- Notifications -->
+    <string name="notification_channel_name">Procesamiento de Video</string>
+    <string name="notification_channel_description">Muestra el progreso del procesamiento de video</string>
+    <string name="notification_title">Procesando video</string>
+</resources>

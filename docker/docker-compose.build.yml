@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  builder:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.build
+    volumes:
+      # Código fuente del proyecto
+      - ..:/home/builder/project:cached
+      # Output para los APKs
+      - ./output:/output
+    environment:
+      - GRADLE_USER_HOME=/home/builder/.gradle
+      # Opcional: variables para signing
+      - RELEASE_KEYSTORE_PATH=/home/builder/keystore/release.keystore
+      - RELEASE_KEYSTORE_PASSWORD=${RELEASE_KEYSTORE_PASSWORD:-}
+      - RELEASE_KEY_ALIAS=${RELEASE_KEY_ALIAS:-}
+      - RELEASE_KEY_PASSWORD=${RELEASE_KEY_PASSWORD:-}
+    working_dir: /home/builder/project
+    # Aumentar memoria para builds grandes
+    mem_limit: 4g

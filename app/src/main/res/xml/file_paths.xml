@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Archivos en el directorio de la app -->
+    <files-path
+        name="whisper_models"
+        path="whisper_models/" />
+    
+    <!-- Output de procesamiento -->
+    <files-path
+        name="output"
+        path="output/" />
+    
+    <!-- Cache -->
+    <cache-path
+        name="cache"
+        path="." />
+    
+    <!-- Directorio externo de la app -->
+    <external-files-path
+        name="external_output"
+        path="output/" />
+</paths>
