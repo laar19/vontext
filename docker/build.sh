@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script de build para VideoContextBot Android
+# Script de build para Vontext Android
 # Se ejecuta dentro del contenedor Docker
 
 set -e
@@ -86,16 +86,16 @@ mkdir -p "$OUTPUT_DIR"
 
 # Copiar APKs
 if [ -f "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" ]; then
-    cp "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" "$OUTPUT_DIR/VideoContextBot-debug.apk"
-    echo "✓ Debug APK: $OUTPUT_DIR/VideoContextBot-debug.apk"
+    cp "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" "$OUTPUT_DIR/Vontext-debug.apk"
+    echo "✓ Debug APK: $OUTPUT_DIR/Vontext-debug.apk"
 fi
 
 if [ -f "$PROJECT_DIR/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-    cp "$PROJECT_DIR/app/build/outputs/apk/release/app-release-unsigned.apk" "$OUTPUT_DIR/VideoContextBot-release-unsigned.apk"
-    echo "✓ Release APK: $OUTPUT_DIR/VideoContextBot-release-unsigned.apk"
+    cp "$PROJECT_DIR/app/build/outputs/apk/release/app-release-unsigned.apk" "$OUTPUT_DIR/Vontext-release-unsigned.apk"
+    echo "✓ Release APK: $OUTPUT_DIR/Vontext-release-unsigned.apk"
 elif [ -f "$PROJECT_DIR/app/build/outputs/apk/release/app-release.apk" ]; then
-    cp "$PROJECT_DIR/app/build/outputs/apk/release/app-release.apk" "$OUTPUT_DIR/VideoContextBot-release.apk"
-    echo "✓ Release APK: $OUTPUT_DIR/VideoContextBot-release.apk"
+    cp "$PROJECT_DIR/app/build/outputs/apk/release/app-release.apk" "$OUTPUT_DIR/Vontext-release.apk"
+    echo "✓ Release APK: $OUTPUT_DIR/Vontext-release.apk"
 fi
 
 # Mostrar información de los APKs
@@ -108,5 +108,5 @@ echo "APKs disponibles en $OUTPUT_DIR:"
 ls -lh "$OUTPUT_DIR"/*.apk 2>/dev/null || echo "No APKs found"
 echo ""
 echo "Para instalar en dispositivo:"
-echo "  adb install $OUTPUT_DIR/VideoContextBot-debug.apk"
+echo "  adb install $OUTPUT_DIR/Vontext-debug.apk"
 echo ""
