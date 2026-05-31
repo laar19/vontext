@@ -35,6 +35,9 @@ interface JobDao {
     @Query("UPDATE jobs SET status = :status, errorMessage = :error WHERE jobId = :jobId")
     suspend fun updateError(jobId: String, status: JobStatus, error: String?)
 
+    @Query("UPDATE jobs SET pdfPath = :pdfPath, zipPath = :zipPath, completedAt = :completedAt WHERE jobId = :jobId")
+    suspend fun updateOutputPaths(jobId: String, pdfPath: String, zipPath: String, completedAt: Long)
+
     @Query("DELETE FROM jobs WHERE jobId = :jobId")
     suspend fun deleteJob(jobId: String)
 }

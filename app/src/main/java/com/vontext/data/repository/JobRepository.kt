@@ -31,5 +31,9 @@ class JobRepository @Inject constructor(
         jobDao.updateError(jobId, status, error)
     }
 
+    suspend fun updateOutputPaths(jobId: String, pdfPath: String, zipPath: String) {
+        jobDao.updateOutputPaths(jobId, pdfPath, zipPath, System.currentTimeMillis())
+    }
+
     suspend fun deleteJob(jobId: String) = jobDao.deleteJob(jobId)
 }

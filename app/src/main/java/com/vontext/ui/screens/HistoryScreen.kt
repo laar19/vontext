@@ -263,7 +263,7 @@ private fun HistoryItem(
             ) {
                 ActionButton(
                     icon = Icons.Default.Description,
-                    label = "Ver PDF",
+                    label = "PDF",
                     color = MaterialTheme.colorScheme.primary,
                     onClick = onViewPdf,
                     modifier = Modifier.weight(1f)

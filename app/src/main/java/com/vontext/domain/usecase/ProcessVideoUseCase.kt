@@ -63,8 +63,8 @@ class ProcessVideoUseCase @Inject constructor(
 
                 result.fold(
                     onSuccess = { zipFile ->
-                        jobRepository.updateStatus(jobId, JobStatus.COMPLETED)
-                        jobRepository.updateProgress(jobId, 100, "Completado")
+                        val pdfFile = File(jobDir, "report.pdf")
+                        jobRepository.updateOutputPaths(jobId, pdfFile.absolutePath, zipFile.absolutePath)
                         Result.success(jobId)
                     },
                     onFailure = { error ->
