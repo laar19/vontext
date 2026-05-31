@@ -7,12 +7,12 @@ plugins {
 }
 
 android {
-    namespace = "com.videocontextbot"
+    namespace = "com.vontext"
     compileSdk = 35
     ndkVersion = "26.1.10909125"
 
     defaultConfig {
-        applicationId = "com.videocontextbot"
+        applicationId = "com.vontext"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -35,6 +35,7 @@ android {
         debug {
             isDebuggable = true
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
         
         release {
@@ -44,6 +45,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../vontext.keystore")
+            storePassword = "vontext123"
+            keyAlias = "vontext"
+            keyPassword = "vontext123"
         }
     }
 
