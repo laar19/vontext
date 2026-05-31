@@ -31,4 +31,7 @@
     <!-- Upload zone -->
     <color name="upload_background">#EEF2FF</color>
     <color name="upload_icon">#6366F1</color>
+    
+    <!-- Launcher icon background -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

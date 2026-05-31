@@ -1,8 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Theme for the splash screen (shown while app loads) -->
+    <style name="Theme.Vontext.Starting" parent="Theme.SplashScreen">
+        <!-- Use the launcher icon as the splash icon -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
+        <!-- Background color for the splash screen -->
+        <item name="windowSplashScreenBackground">@color/background</item>
+        <!-- Duration (max 1000ms as per Android guidelines) -->
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <!-- The main theme to switch to after splash -->
+        <item name="postSplashScreenTheme">@style/Theme.Vontext</item>
+    </style>
+
+    <!-- Main app theme -->
     <style name="Theme.Vontext" parent="android:Theme.Material.Light">
         <item name="android:colorPrimary">@color/primary</item>
         <item name="android:colorPrimaryDark">@color/primary_dark</item>
         <item name="android:colorAccent">@color/secondary</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>
