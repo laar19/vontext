@@ -111,7 +111,7 @@ fun HistoryScreen(
                     .fillMaxSize()
                     .padding(padding),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 16.dp, 16.dp, 100.dp)
             ) {
                 items(
                     items = jobs.filter { it.status == JobStatus.COMPLETED },
@@ -325,9 +325,15 @@ private fun ActionButton(
 }
 
 private fun Context.viewPdf(pdfPath: String?) {
-    if (pdfPath == null) return
+    if (pdfPath == null) {
+        android.widget.Toast.makeText(this, "PDF no disponible", android.widget.Toast.LENGTH_SHORT).show()
+        return
+    }
     val file = File(pdfPath)
-    if (!file.exists()) return
+    if (!file.exists()) {
+        android.widget.Toast.makeText(this, "Archivo no encontrado", android.widget.Toast.LENGTH_SHORT).show()
+        return
+    }
     
     val uri = FileProvider.getUriForFile(
         this,
@@ -341,16 +347,23 @@ private fun Context.viewPdf(pdfPath: String?) {
     }
     
     try {
-        startActivity(intent)
+        startActivity(Intent.createChooser(intent, "Abrir PDF con..."))
     } catch (e: Exception) {
         e.printStackTrace()
+        android.widget.Toast.makeText(this, "No se pudo abrir el PDF", android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 
 private fun Context.shareFile(filePath: String?, mimeType: String) {
-    if (filePath == null) return
+    if (filePath == null) {
+        android.widget.Toast.makeText(this, "Archivo no disponible", android.widget.Toast.LENGTH_SHORT).show()
+        return
+    }
     val file = File(filePath)
-    if (!file.exists()) return
+    if (!file.exists()) {
+        android.widget.Toast.makeText(this, "Archivo no encontrado", android.widget.Toast.LENGTH_SHORT).show()
+        return
+    }
     
     val uri = FileProvider.getUriForFile(
         this,
@@ -368,6 +381,7 @@ private fun Context.shareFile(filePath: String?, mimeType: String) {
         startActivity(Intent.createChooser(intent, "Compartir archivo"))
     } catch (e: Exception) {
         e.printStackTrace()
+        android.widget.Toast.makeText(this, "No se pudo compartir", android.widget.Toast.LENGTH_SHORT).show()
     }
 }
 

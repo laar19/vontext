@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -102,7 +103,8 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         // Hero Banner
         item {
@@ -240,7 +242,11 @@ fun HomeScreen(
                     ProgressSection(
                         progress = progress,
                         message = progressMessage,
-                        logs = logs
+                        logs = logs,
+                        onCancel = {
+                            viewModel.cancelProcessing()
+                            isProcessing = false
+                        }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
@@ -449,7 +455,7 @@ private fun AssistChip(text: String) {
             text = text,
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
         )
     }
 }
@@ -732,7 +738,7 @@ private fun IntervalStepper(
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IntervalChip("Auto", 0, interval, onIntervalChange)
                 IntervalChip("1s", 1, interval, onIntervalChange)
@@ -788,7 +794,7 @@ private fun IntervalChip(
         Row(
             modifier = Modifier
                 .clickable { onClick(value) }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -827,7 +833,8 @@ private fun NotesTextArea(notes: String, onNotesChange: (String) -> Unit) {
 private fun ProgressSection(
     progress: Int,
     message: String,
-    logs: List<String>
+    logs: List<String>,
+    onCancel: () -> Unit
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -838,12 +845,21 @@ private fun ProgressSection(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Text(
-                text = "Procesando...",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Procesando...",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                androidx.compose.material3.TextButton(onClick = onCancel) {
+                    Text("Cancelar")
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             LinearProgressIndicator(
                 progress = progress / 100f,

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -75,9 +76,9 @@ fun VontextApp() {
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
                         colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF6366F1),
-                            selectedTextColor = Color(0xFF6366F1),
-                            indicatorColor = Color(0xFF6366F1).copy(alpha = 0.1f)
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 }
