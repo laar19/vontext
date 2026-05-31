@@ -38,6 +38,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateLanguage(language: String) {
+        viewModelScope.launch {
+            settingsRepository.updateLanguage(language)
+        }
+    }
+
     fun clearHistory() {
         viewModelScope.launch {
             jobRepository.getAllJobs().collect { jobs ->

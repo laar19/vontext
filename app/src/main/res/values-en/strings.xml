@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vontext</string>
+    <string name="app_description">Process screen recording videos and generate rich context for AI agents.</string>
+    
+    <!-- Home Screen -->
+    <string name="select_video">Select Video</string>
+    <string name="drop_or_upload">Tap to select or drag video here</string>
+    <string name="interval_label">Capture Interval</string>
+    <string name="interval_hint">Seconds between captures (0 = Auto / scene detection)</string>
+    <string name="recommended_values">Recommended values: 1, 2, 3, 5, 9, 30</string>
+    <string name="notes_label">Additional Notes (Optional)</string>
+    <string name="notes_hint">Paste any notes, logs or additional info here…</string>
+    <string name="paste_notes">Paste notes/logs</string>
+    <string name="process_button">🚀 Process Video</string>
+    <string name="process_multiple_button">🚀 Process %1$d Videos</string>
+    
+    <!-- Results -->
+    <string name="results_label">🎁 Results</string>
+    <string name="status_label">Status</string>
+    <string name="pdf_report">📄 PDF Report</string>
+    <string name="zip_complete">📦 Complete ZIP</string>
+    
+    <!-- Progress -->
+    <string name="progress_label">Progress</string>
+    <string name="logs_label">📋 Processing Logs</string>
+    <string name="logs_hint">Logs…</string>
+    
+    <!-- Info -->
+    <string name="info_label">ℹ️ Information</string>
+    <string name="max_size">Maximum size: 2GB</string>
+    <string name="formats">Formats: MP4, MKV, AVI, MOV, WebM</string>
+    <string name="processing_time">Processing may take several minutes depending on video size</string>
+    <string name="telegram_bot">Use Telegram bot for faster processing</string>
+    
+    <!-- Settings -->
+    <string name="settings_label">⚙️ Settings</string>
+    <string name="api_key_label">🔑 API Key</string>
+    <string name="api_key_hint">sk-…</string>
+    <string name="endpoint_label">🌐 Endpoint URL</string>
+    <string name="endpoint_hint">https://api.openai.com/v1</string>
+    <string name="model_label">🧠 Model</string>
+    <string name="model_hint">whisper-1</string>
+    <string name="default_interval_label">🔄 Default Interval</string>
+    <string name="clear_history_button">🗑️ Clear History</string>
+    <string name="clear_history_confirm">Are you sure you want to clear all history? This action cannot be undone.</string>
+    <string name="about_label">ℹ️ About</string>
+    <string name="version">Version</string>
+    
+    <!-- History -->
+    <string name="history_label">📜 History</string>
+    <string name="no_history">No jobs in history yet</string>
+    <string name="open_pdf">📄 Open PDF</string>
+    <string name="share_pdf">📤 Share PDF</string>
+    <string name="share_zip">📦 Share ZIP</string>
+    
+    <!-- Multi-video -->
+    <string name="process_together">🔗 Process together</string>
+    <string name="process_separate">📎 Process separately</string>
+    <string name="reorder_videos">🔄 Reorder videos (drag)</string>
+    <string name="selected_videos">Selected videos (%1$d)</string>
+    
+    <!-- Messages -->
+    <string name="processing_started">Processing started…</string>
+    <string name="processing_completed">Processing completed!</string>
+    <string name="processing_failed">Processing error</string>
+    <string name="video_selected">Video selected: %1$s</string>
+    <string name="videos_selected">%1$d videos selected</string>
+    <string name="share_pdf_title">Share PDF</string>
+    <string name="share_zip_title">Share ZIP</string>
+    <string name="error_no_api_key">Please configure your API Key in Settings</string>
+    <string name="error_invalid_endpoint">Invalid endpoint</string>
+    <string name="saving_to_downloads">Saving to Downloads/Vontext/…</string>
+    
+    <!-- Whisper Mode Dialog -->
+    <string name="whisper_mode_dialog_title">Select Transcription Mode</string>
+    <string name="whisper_mode_local_title">🏠 Local (whisper.cpp - Small)</string>
+    <string name="whisper_mode_local_desc">Fully offline, ~466 MB, ~5 min processing</string>
+    <string name="whisper_mode_remote_title">☁️ Remote (OpenAI-compatible)</string>
+    <string name="whisper_mode_remote_desc">Requires API key, ~1 min processing</string>
+    <string name="whisper_mode_remote_disabled">Configure API key in Settings to enable</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_process">Process</string>
+    
+    <!-- Language -->
+    <string name="language_label">🌐 Language / Idioma</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_english">English</string>
+</resources>

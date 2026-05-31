@@ -26,13 +26,36 @@ class VideoViewModel @Inject constructor(
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
     val processingState: StateFlow<ProcessingState> = _processingState.asStateFlow()
 
+    private val _whisperMode = MutableStateFlow(WhisperMode.LOCAL_SMALL)
+    val whisperMode: StateFlow<WhisperMode> = _whisperMode.asStateFlow()
+
+    val settings = settingsRepository.settings
+
+    init {
+        viewModelScope.launch {
+            settings.collect { settings ->
+                settings?.let {
+                    _whisperMode.value = it.defaultWhisperMode
+                }
+            }
+        }
+    }
+
     val allJobs = jobRepository.getAllJobs()
+
+    fun updateWhisperMode(mode: WhisperMode) {
+        _whisperMode.value = mode
+        viewModelScope.launch {
+            settingsRepository.updateWhisperMode(mode)
+        }
+    }
 
     fun processVideos(
         videos: List<Uri>,
         processTogether: Boolean,
         interval: Int,
         notes: String?,
+        whisperMode: WhisperMode = _whisperMode.value,
         onProgress: (Int, String) -> Unit,
         onComplete: (Result<String>) -> Unit
     ) {
@@ -48,7 +71,7 @@ class VideoViewModel @Inject constructor(
             try {
                 val config = ProcessingConfig(
                     frameInterval = interval,
-                    whisperMode = WhisperMode.REMOTE_OPENAI,
+                    whisperMode = whisperMode,
                     additionalNotes = notes
                 )
 

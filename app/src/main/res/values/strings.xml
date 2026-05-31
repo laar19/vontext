@@ -31,7 +31,7 @@
     <string name="max_size">Tamaño máximo: 2GB</string>
     <string name="formats">Formatos: MP4, MKV, AVI, MOV, WebM</string>
     <string name="processing_time">El procesamiento puede tomar varios minutos dependiendo del tamaño del video</string>
-    <string name="telegram_bot">Usá el bot de Telegram para procesamiento más rápido</string>
+    <string name="telegram_bot">Usa el bot de Telegram para procesamiento más rápido</string>
     
     <!-- Settings -->
     <string name="settings_label">⚙️ Configuración</string>
@@ -71,4 +71,19 @@
     <string name="error_no_api_key">Por favor configura tu API Key en Configuración</string>
     <string name="error_invalid_endpoint">Endpoint inválido</string>
     <string name="saving_to_downloads">Guardando en Downloads/Vontext/…</string>
+    
+    <!-- Whisper Mode Dialog -->
+    <string name="whisper_mode_dialog_title">Seleccionar modo de transcripción</string>
+    <string name="whisper_mode_local_title">🏠 Local (whisper.cpp - Small)</string>
+    <string name="whisper_mode_local_desc">Totalmente offline, ~466 MB, ~5 min de procesamiento</string>
+    <string name="whisper_mode_remote_title">☁️ Remoto (OpenAI-compatible)</string>
+    <string name="whisper_mode_remote_desc">Requiere API key, ~1 min de procesamiento</string>
+    <string name="whisper_mode_remote_disabled">Configura API key en Ajustes para habilitar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_process">Procesar</string>
+    
+    <!-- Language -->
+    <string name="language_label">🌐 Idioma / Language</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_english">English</string>
 </resources>

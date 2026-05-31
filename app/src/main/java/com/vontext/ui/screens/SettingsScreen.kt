@@ -69,11 +69,13 @@ fun SettingsScreen(
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var showEndpointDialog by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     
     var apiKey by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf("https://api.openai.com/v1") }
     var model by remember { mutableStateOf("whisper-1") }
     var showApiKey by remember { mutableStateOf(false) }
+    var language by remember { mutableStateOf("es") }
     
     // Update local state when settings change
     androidx.compose.runtime.LaunchedEffect(settings) {
@@ -81,6 +83,7 @@ fun SettingsScreen(
             apiKey = it.openaiApiKey ?: ""
             endpoint = it.openaiBaseUrl ?: "https://api.openai.com/v1"
             model = it.whisperModel
+            language = it.language
         }
     }
 
@@ -128,6 +131,12 @@ fun SettingsScreen(
                     label = "Modelo",
                     value = model,
                     onClick = { showModelDialog = true }
+                )
+                ConfigRow(
+                    icon = Icons.Default.Language,
+                    label = "Idioma",
+                    value = if (language == "es") "Español" else "English",
+                    onClick = { showLanguageDialog = true }
                 )
             }
             
@@ -226,6 +235,18 @@ fun SettingsScreen(
         )
     }
     
+    // Language Dialog
+    if (showLanguageDialog) {
+        LanguageDialog(
+            currentLanguage = language,
+            onLanguageSelected = { newLang ->
+                language = newLang
+                viewModel.updateLanguage(newLang)
+            },
+            onDismiss = { showLanguageDialog = false }
+        )
+    }
+    
     // Clear History Dialog
     if (showClearDialog) {
         AlertDialog(
@@ -238,7 +259,7 @@ fun SettingsScreen(
                 )
             },
             title = { Text("¿Limpiar historial?") },
-            text = { Text("Se borrarán todos los trabajos del historial y sus archivos asociados.") },
+            text = { Text("Se borrarán todos los trabajos del historial.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -409,6 +430,80 @@ private fun EditDialog(
                 }
             ) {
                 Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+@Composable
+private fun LanguageDialog(
+    currentLanguage: String,
+    onLanguageSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedLanguage by remember { mutableStateOf(currentLanguage) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = "Seleccionar idioma / Select language")
+        },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedLanguage = "es" }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.RadioButton(
+                        selected = selectedLanguage == "es",
+                        onClick = { selectedLanguage = "es" }
+                    )
+                    Text(
+                        text = "Español",
+                        modifier = Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedLanguage = "en" }
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.RadioButton(
+                        selected = selectedLanguage == "en",
+                        onClick = { selectedLanguage = "en" }
+                    )
+                    Text(
+                        text = "English",
+                        modifier = Modifier.padding(start = 8.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Nota: Debes reiniciar la app para que el cambio surta efecto.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onLanguageSelected(selectedLanguage)
+                }
+            ) {
+                Text("Aceptar")
             }
         },
         dismissButton = {

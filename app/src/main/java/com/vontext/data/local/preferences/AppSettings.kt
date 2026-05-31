@@ -26,7 +26,8 @@ data class Settings(
     val maxVideoSizeMb: Int = 2048,
     val cleanupTempAfterHours: Int = 24,
     val cleanupOutputAfterHours: Int = 48,
-    val notificationsEnabled: Boolean = true
+    val notificationsEnabled: Boolean = true,
+    val language: String = "es"
 )
 
 @Singleton
@@ -43,6 +44,7 @@ class SettingsRepository @Inject constructor(
         val CLEANUP_TEMP_HOURS = intPreferencesKey("cleanup_temp_hours")
         val CLEANUP_OUTPUT_HOURS = intPreferencesKey("cleanup_output_hours")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val LANGUAGE = stringPreferencesKey("language")
     }
 
     val settings: Flow<Settings> = context.dataStore.data.map { prefs ->
@@ -57,7 +59,8 @@ class SettingsRepository @Inject constructor(
             maxVideoSizeMb = prefs[Keys.MAX_VIDEO_SIZE_MB] ?: 2048,
             cleanupTempAfterHours = prefs[Keys.CLEANUP_TEMP_HOURS] ?: 24,
             cleanupOutputAfterHours = prefs[Keys.CLEANUP_OUTPUT_HOURS] ?: 48,
-            notificationsEnabled = prefs[Keys.NOTIFICATIONS_ENABLED] ?: true
+            notificationsEnabled = prefs[Keys.NOTIFICATIONS_ENABLED] ?: true,
+            language = prefs[Keys.LANGUAGE] ?: "es"
         )
     }
 
@@ -89,6 +92,12 @@ class SettingsRepository @Inject constructor(
     suspend fun updateFrameInterval(interval: Int) {
         context.dataStore.edit { prefs ->
             prefs[Keys.DEFAULT_FRAME_INTERVAL] = interval
+        }
+    }
+
+    suspend fun updateLanguage(language: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.LANGUAGE] = language
         }
     }
 }

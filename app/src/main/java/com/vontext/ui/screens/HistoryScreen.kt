@@ -168,7 +168,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Procesá tu primer video desde\nla pantalla de Inicio",
+                    text = "Procesa tu primer video desde\nla pantalla de Inicio",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center

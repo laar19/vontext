@@ -41,15 +41,18 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -59,14 +62,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.vontext.processor.whisper.WhisperMode
 import com.vontext.viewmodel.VideoViewModel
 import kotlinx.coroutines.launch
 
@@ -89,6 +95,13 @@ fun HomeScreen(
     var showResults by remember { mutableStateOf(false) }
     var pdfPath by remember { mutableStateOf<String?>(null) }
     var zipPath by remember { mutableStateOf<String?>(null) }
+    var showWhisperModeDialog by remember { mutableStateOf(false) }
+    var pendingVideos by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var pendingProcessTogether by remember { mutableStateOf(true) }
+    var pendingInterval by remember { mutableIntStateOf(5) }
+    var pendingNotes by remember { mutableStateOf<String?>(null) }
+
+    val settings by viewModel.settings.collectAsState(initial = null)
 
     val videoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -183,40 +196,11 @@ fun HomeScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                         if (selectedVideos.isNotEmpty() && !isProcessing) {
-                            isProcessing = true
-                            showResults = false
-                            scope.launch {
-                                viewModel.processVideos(
-                                    videos = selectedVideos.toList(),
-                                    processTogether = processTogether,
-                                    interval = interval,
-                                    notes = notes.ifBlank { null },
-                                    onProgress = { p, msg ->
-                                        progress = p
-                                        progressMessage = msg
-                                        logs = logs + msg
-                                    },
-                                    onComplete = { result ->
-                                        isProcessing = false
-                                        showResults = true
-                                        result.fold(
-                                            onSuccess = { jobId ->
-                                                scope.launch {
-                                                    viewModel.getJob(jobId).collect { job ->
-                                                        job?.let {
-                                                            pdfPath = it.pdfPath
-                                                            zipPath = it.zipPath
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            onFailure = { error ->
-                                                logs = logs + "Error: ${error.message}"
-                                            }
-                                        )
-                                    }
-                                )
-                            }
+                            pendingVideos = selectedVideos.toList()
+                            pendingProcessTogether = processTogether
+                            pendingInterval = interval
+                            pendingNotes = notes.ifBlank { null }
+                            showWhisperModeDialog = true
                         }
                     },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -264,6 +248,145 @@ fun HomeScreen(
                 InfoBanner()
             }
         }
+    }
+
+    // Whisper Mode Dialog
+    if (showWhisperModeDialog) {
+        val currentMode = viewModel.whisperMode.collectAsState(initial = WhisperMode.LOCAL_SMALL).value
+        val hasRemoteConfigured = settings?.openaiApiKey != null
+        
+        AlertDialog(
+            onDismissRequest = { showWhisperModeDialog = false },
+            title = {
+                Text(text = "Seleccionar modo de transcripción")
+            },
+            text = {
+                Column {
+                    var selectedMode by remember { mutableStateOf(currentMode) }
+                    
+                    // Local mode option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedMode = WhisperMode.LOCAL_SMALL }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = selectedMode == WhisperMode.LOCAL_SMALL,
+                            onClick = { selectedMode = WhisperMode.LOCAL_SMALL }
+                        )
+                        Column(
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = "🏠 Local (whisper.cpp - Small)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Totalmente offline, ~466 MB, ~5 min de procesamiento",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Remote mode option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                if (hasRemoteConfigured) {
+                                    selectedMode = WhisperMode.REMOTE_OPENAI 
+                                }
+                            }
+                            .padding(vertical = 12.dp)
+                            .alpha(if (hasRemoteConfigured) 1f else 0.5f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = selectedMode == WhisperMode.REMOTE_OPENAI,
+                            onClick = { selectedMode = WhisperMode.REMOTE_OPENAI },
+                            enabled = hasRemoteConfigured
+                        )
+                        Column(
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Text(
+                                text = "☁️ Remoto (OpenAI-compatible)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = if (hasRemoteConfigured) 
+                                    "Requiere API key, ~1 min de procesamiento" 
+                                else 
+                                    "Configura API key en Ajustes para habilitar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // Store selected mode and start processing
+                    androidx.compose.runtime.LaunchedEffect(selectedMode) {
+                        viewModel.updateWhisperMode(selectedMode)
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        showWhisperModeDialog = false
+                        isProcessing = true
+                        showResults = false
+                        scope.launch {
+                            viewModel.processVideos(
+                                videos = pendingVideos,
+                                processTogether = pendingProcessTogether,
+                                interval = pendingInterval,
+                                notes = pendingNotes,
+                                whisperMode = viewModel.whisperMode.value,
+                                onProgress = { p, msg ->
+                                    progress = p
+                                    progressMessage = msg
+                                    logs = logs + msg
+                                },
+                                onComplete = { result ->
+                                    isProcessing = false
+                                    showResults = true
+                                    result.fold(
+                                        onSuccess = { jobId ->
+                                            scope.launch {
+                                                viewModel.getJob(jobId).collect { job ->
+                                                    job?.let {
+                                                        pdfPath = it.pdfPath
+                                                        zipPath = it.zipPath
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onFailure = { error ->
+                                            logs = logs + "Error: ${error.message}"
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                ) {
+                    Text("Procesar")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showWhisperModeDialog = false }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -416,7 +539,7 @@ private fun UploadZone(onPickVideo: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Toca para seleccionar o arrastrá aquí",
+                    text = "Toca para seleccionar o arrastra aquí",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
@@ -1022,7 +1145,7 @@ private fun InfoBanner() {
                 )
                 InfoItem("Tamaño máximo: 2 GB por archivo")
                 InfoItem("El procesamiento puede tomar varios minutos")
-                InfoItem("Usá el bot de Telegram para mayor velocidad")
+                InfoItem("Usa el bot de Telegram para mayor velocidad")
             }
         }
     }
