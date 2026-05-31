@@ -3,11 +3,9 @@ package com.vontext.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,22 +19,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.outlined.CropFree
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -55,13 +59,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.vontext.viewmodel.VideoViewModel
 import kotlinx.coroutines.launch
 
@@ -75,7 +79,7 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val selectedVideos = remember { mutableStateListOf<Uri>() }
     var processTogether by remember { mutableStateOf(true) }
-    var interval by remember { mutableIntStateOf(0) }
+    var interval by remember { mutableIntStateOf(5) }
     var notes by remember { mutableStateOf("") }
     var isProcessing by remember { mutableStateOf(false) }
     var progress by remember { mutableIntStateOf(0) }
@@ -95,342 +99,424 @@ fun HomeScreen(
         }
     }
 
-    val listState = rememberLazyListState()
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Hero Banner
+        item {
+            HeroBanner()
+        }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFF8FAFC)),
-            state = listState
-        ) {
-            // Header
-            item {
-                HeaderSection(onNavigateToSettings, onNavigateToHistory)
-            }
-
-            // Features
-            item {
-                FeaturesSection()
-            }
-
-            // Upload Zone
-            item {
-                UploadSection(
-                    selectedVideos = selectedVideos,
-                    onPickVideo = { videoPicker.launch("video/*") },
-                    onRemoveVideo = { index -> selectedVideos.removeAt(index) },
-                    processTogether = processTogether,
-                    onProcessTogetherChange = { processTogether = it },
-                    onReorder = { from, to ->
-                        selectedVideos.add(to, selectedVideos.removeAt(from))
-                    }
+        // Body
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // Upload zone
+                Text(
+                    text = "Video",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-            }
 
-            // Interval
-            item {
-                IntervalSection(
+                UploadZone(
+                    onPickVideo = { videoPicker.launch("video/*") }
+                )
+
+                // Selected videos card
+                if (selectedVideos.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SelectedVideosCard(
+                        videos = selectedVideos,
+                        onRemoveVideo = { index -> selectedVideos.removeAt(index) },
+                        onClearAll = { selectedVideos.clear() },
+                        onMoveUp = { idx ->
+                            if (idx > 0) {
+                                val item = selectedVideos.removeAt(idx)
+                                selectedVideos.add(idx - 1, item)
+                            }
+                        },
+                        onMoveDown = { idx ->
+                            if (idx < selectedVideos.size - 1) {
+                                val item = selectedVideos.removeAt(idx)
+                                selectedVideos.add(idx + 1, item)
+                            }
+                        },
+                        processTogether = processTogether,
+                        onProcessTogetherChange = { processTogether = it }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Interval configuration
+                Text(
+                    text = "Configuración",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                IntervalStepper(
                     interval = interval,
                     onIntervalChange = { interval = it }
                 )
-            }
 
-            // Notes
-            item {
-                NotesSection(notes = notes, onNotesChange = { notes = it })
-            }
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Process Button
-            item {
-                ProcessButton(
-                    videoCount = selectedVideos.size,
-                    enabled = selectedVideos.isNotEmpty() && !isProcessing,
+                // Notes
+                NotesTextArea(
+                    notes = notes,
+                    onNotesChange = { notes = it }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Process FAB Extended
+                ExtendedFloatingActionButton(
                     onClick = {
-                        isProcessing = true
-                        showResults = false
-                        scope.launch {
-                            viewModel.processVideos(
-                                videos = selectedVideos.toList(),
-                                processTogether = processTogether,
-                                interval = interval,
-                                notes = notes.ifBlank { null },
-                                onProgress = { p, msg ->
-                                    progress = p
-                                    progressMessage = msg
-                                    logs = logs + msg
-                                },
-                                onComplete = { result ->
-                                    isProcessing = false
-                                    showResults = true
-                                    result.fold(
-                                        onSuccess = { jobId ->
-                                            // Obtener el job de la BD para obtener pdfPath y zipPath
-                                            scope.launch {
-                                                viewModel.getJob(jobId).collect { job ->
-                                                    job?.let {
-                                                        pdfPath = it.pdfPath
-                                                        zipPath = it.zipPath
+                        if (selectedVideos.isNotEmpty() && !isProcessing) {
+                            isProcessing = true
+                            showResults = false
+                            scope.launch {
+                                viewModel.processVideos(
+                                    videos = selectedVideos.toList(),
+                                    processTogether = processTogether,
+                                    interval = interval,
+                                    notes = notes.ifBlank { null },
+                                    onProgress = { p, msg ->
+                                        progress = p
+                                        progressMessage = msg
+                                        logs = logs + msg
+                                    },
+                                    onComplete = { result ->
+                                        isProcessing = false
+                                        showResults = true
+                                        result.fold(
+                                            onSuccess = { jobId ->
+                                                scope.launch {
+                                                    viewModel.getJob(jobId).collect { job ->
+                                                        job?.let {
+                                                            pdfPath = it.pdfPath
+                                                            zipPath = it.zipPath
+                                                        }
                                                     }
                                                 }
+                                            },
+                                            onFailure = { error ->
+                                                logs = logs + "Error: ${error.message}"
                                             }
-                                        },
-                                        onFailure = { error ->
-                                            logs = logs + "Error: ${error.message}"
-                                        }
-                                    )
-                                }
-                            )
+                                        )
+                                    }
+                                )
+                            }
                         }
-                    }
-                )
-            }
+                    },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.RocketLaunch,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (selectedVideos.size > 1) "Procesar ${selectedVideos.size} Videos" else "Procesar Video",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
 
-            // Progress & Logs (during processing)
-            if (isProcessing) {
-                item {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Progress section (during processing)
+                if (isProcessing) {
                     ProgressSection(
                         progress = progress,
                         message = progressMessage,
                         logs = logs
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            }
 
-            // Results (after completion)
-            if (showResults) {
-                item {
+                // Results section (after completion)
+                if (showResults && !isProcessing) {
                     ResultsSection(
                         pdfPath = pdfPath,
                         zipPath = zipPath
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-            }
 
-            // Info Section
-            item {
-                InfoSection()
-            }
-
-            // Bottom padding
-            item {
-                Spacer(modifier = Modifier.height(100.dp))
+                // Info banner
+                InfoBanner()
             }
         }
     }
 }
 
 @Composable
-private fun HeaderSection(
-    onNavigateToSettings: () -> Unit,
-    onNavigateToHistory: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF6366F1))
-            .padding(20.dp)
+private fun HeroBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.primary
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "🎬 Vontext",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            Color(0xFF1a73e8)
+                        )
+                    )
                 )
-            }
-            Row {
-                IconButton(onClick = onNavigateToHistory) {
-                    Icon(
-                        imageVector = Icons.Default.VideoFile,
-                        contentDescription = "Historial",
-                        tint = Color.White
-                    )
-                }
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Configuración",
-                        tint = Color.White
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Procesa videos de grabaciones de pantalla y genera contexto rico para agentes de IA.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.9f)
-        )
-    }
-}
-
-@Composable
-private fun FeaturesSection() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Características:",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1E293B)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        FeatureItem("🎯", "Extracción inteligente de frames únicos")
-        FeatureItem("🎤", "Transcripción de audio con Whisper API")
-        FeatureItem("📄", "Generación de PDF profesional")
-        FeatureItem("📦", "Descarga completa en ZIP")
-    }
-}
-
-@Composable
-private fun FeatureItem(icon: String, text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = icon, style = MaterialTheme.typography.bodyLarge)
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B)
-        )
-    }
-}
-
-@Composable
-private fun UploadSection(
-    selectedVideos: List<Uri>,
-    onPickVideo: () -> Unit,
-    onRemoveVideo: (Int) -> Unit,
-    processTogether: Boolean,
-    onProcessTogetherChange: (Boolean) -> Unit,
-    onReorder: (Int, Int) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "📤 Subir Video",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Upload zone
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .border(
-                        border = BorderStroke(2.dp, Color(0xFF6366F1).copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .background(Color(0xFFEEF2FF))
-                    .clickable(onClick = onPickVideo),
-                contentAlignment = Alignment.Center
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Upload",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color(0xFF6366F1)
+                        imageVector = Icons.Default.VideoFile,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Vontext",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Surface(
+                    color = Color.White.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
                     Text(
-                        text = "Toca para seleccionar",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color(0xFF6366F1),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "o arrastra el video aquí",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
+                        text = "Beta",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Convierte grabaciones de pantalla en contexto PDF para agentes de IA.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.82f)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                HeroChip(icon = Icons.Outlined.CropFree, text = "Frames")
+                HeroChip(icon = Icons.Outlined.Mic, text = "Whisper")
+                HeroChip(icon = Icons.Outlined.PictureAsPdf, text = "PDF")
+                HeroChip(icon = Icons.Outlined.FolderZip, text = "ZIP")
+            }
+        }
+    }
+}
 
-            // Selected videos
-            if (selectedVideos.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Videos seleccionados (${selectedVideos.size})",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1E293B)
+@Composable
+private fun HeroChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Surface(
+        color = Color.White.copy(alpha = 0.15f),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color.White.copy(alpha = 0.25f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.9f),
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.9f),
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun UploadZone(onPickVideo: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onPickVideo),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(
+            2.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.UploadFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(32.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Subir video",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Toca para seleccionar o arrastrá aquí",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                AssistChip("MP4")
+                AssistChip("MKV")
+                AssistChip("AVI")
+                AssistChip("MOV")
+                AssistChip("WebM")
+            }
+            Text(
+                text = "Tamaño máximo 2 GB",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
 
-                selectedVideos.forEachIndexed { index, uri ->
-                    VideoItem(
-                        uri = uri,
-                        index = index,
-                        totalItems = selectedVideos.size,
-                        canReorder = selectedVideos.size > 1 && processTogether,
-                        onRemove = { onRemoveVideo(index) },
-                        onMoveUp = { 
-                            if (index > 0) {
-                                val newList = selectedVideos.toMutableList()
-                                val temp = newList[index]
-                                newList[index] = newList[index - 1]
-                                newList[index - 1] = temp
-                                onReorder(index, index - 1)
-                            }
-                        },
-                        onMoveDown = { 
-                            if (index < selectedVideos.size - 1) {
-                                val newList = selectedVideos.toMutableList()
-                                val temp = newList[index]
-                                newList[index] = newList[index + 1]
-                                newList[index + 1] = temp
-                                onReorder(index, index + 1)
-                            }
-                        }
+@Composable
+private fun AssistChip(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+private fun SelectedVideosCard(
+    videos: List<Uri>,
+    onRemoveVideo: (Int) -> Unit,
+    onClearAll: () -> Unit,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    processTogether: Boolean,
+    onProcessTogetherChange: (Boolean) -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Videos seleccionados (${videos.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium
+                )
+                if (videos.size > 1) {
+                    Text(
+                        text = "Limpiar todo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.clickable(onClick = onClearAll)
                     )
                 }
-
-                // Process mode toggle
-                if (selectedVideos.size > 1) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        ProcessModeChip(
-                            label = "🔗 Procesar juntos",
-                            selected = processTogether,
-                            onClick = { onProcessTogetherChange(true) }
-                        )
-                        ProcessModeChip(
-                            label = "📎 Procesar por separado",
-                            selected = !processTogether,
-                            onClick = { onProcessTogetherChange(false) }
-                        )
-                    }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            videos.forEachIndexed { index, uri ->
+                VideoItem(
+                    index = index,
+                    totalItems = videos.size,
+                    canReorder = videos.size > 1 && processTogether,
+                    onRemove = { onRemoveVideo(index) },
+                    onMoveUp = { onMoveUp(index) },
+                    onMoveDown = { onMoveDown(index) }
+                )
+                if (index < videos.size - 1) {
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
+            }
+            if (videos.size > 1) {
+                Spacer(modifier = Modifier.height(12.dp))
+                ProcessModeSegmentedButton(
+                    processTogether = processTogether,
+                    onProcessTogetherChange = onProcessTogetherChange
+                )
             }
         }
     }
@@ -438,7 +524,6 @@ private fun UploadSection(
 
 @Composable
 private fun VideoItem(
-    uri: Uri,
     index: Int,
     totalItems: Int,
     canReorder: Boolean,
@@ -446,18 +531,17 @@ private fun VideoItem(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (canReorder) {
                 Column(
@@ -469,12 +553,12 @@ private fun VideoItem(
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DragHandle,
+                            imageVector = Icons.Default.Close,
                             contentDescription = "Subir",
-                            tint = if (index > 0) Color(0xFF6366F1) else Color(0xFF94A3B8),
+                            tint = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                             modifier = Modifier
                                 .size(16.dp)
-                                .graphicsLayer { rotationZ = 180f }
+                                .rotate(180f)
                         )
                     }
                     IconButton(
@@ -483,41 +567,39 @@ private fun VideoItem(
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DragHandle,
+                            imageVector = Icons.Default.Close,
                             contentDescription = "Bajar",
-                            tint = if (index < totalItems - 1) Color(0xFF6366F1) else Color(0xFF94A3B8),
+                            tint = if (index < totalItems - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(4.dp))
             }
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF6366F1)),
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "${index + 1}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Video",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Video ${index + 1}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF1E293B),
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Eliminar",
-                    tint = Color(0xFF64748B),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -526,147 +608,219 @@ private fun VideoItem(
 }
 
 @Composable
-private fun ProcessModeChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
+private fun ProcessModeSegmentedButton(
+    processTogether: Boolean,
+    onProcessTogetherChange: (Boolean) -> Unit
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = if (selected) Color(0xFF6366F1) else Color.White,
-        border = BorderStroke(1.dp, Color(0xFF6366F1)),
-        onClick = onClick
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline
+        )
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (selected) Color.White else Color(0xFF6366F1),
-                maxLines = 1
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = if (processTogether) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = "🔗 Juntos",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (processTogether) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onProcessTogetherChange(true) }
+                        .padding(vertical = 10.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = if (!processTogether) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = "📎 Separado",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (!processTogether) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onProcessTogetherChange(false) }
+                        .padding(vertical = 10.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun IntervalSection(
+private fun IntervalStepper(
     interval: Int,
     onIntervalChange: (Int) -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "🎯 Intervalo de Captura",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = if (interval == 0) "" else interval.toString(),
-                    onValueChange = { 
-                        onIntervalChange(it.toIntOrNull() ?: 0)
-                    },
-                    label = { Text("Segundos") },
-                    placeholder = { Text("0 = Auto") },
-                    modifier = Modifier.width(100.dp),
-                    singleLine = true
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "0 = Auto / detección de escenas",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF64748B),
-                    modifier = Modifier.weight(1f)
+                    text = "Intervalo de captura",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Valores recomendados: 1, 2, 3, 5, 9, 30",
+                text = "0 = Auto / detección de escenas",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StepperButton(
+                    onClick = { onIntervalChange(maxOf(0, interval - 1)) }
+                ) {
+                    Text("−", style = MaterialTheme.typography.titleLarge)
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "$interval",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "segundos",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                StepperButton(
+                    onClick = { onIntervalChange(interval + 1) }
+                ) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IntervalChip("Auto", 0, interval, onIntervalChange)
+                IntervalChip("1s", 1, interval, onIntervalChange)
+                IntervalChip("2s", 2, interval, onIntervalChange)
+                IntervalChip("5s", 5, interval, onIntervalChange)
+                IntervalChip("9s", 9, interval, onIntervalChange)
+                IntervalChip("30s", 30, interval, onIntervalChange)
+            }
         }
     }
 }
 
 @Composable
-private fun NotesSection(
-    notes: String,
-    onNotesChange: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "📝 Notas Adicionales (Opcional)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = notes,
-                onValueChange = onNotesChange,
-                label = { Text("Pegar notas/logs") },
-                placeholder = { Text("Pega aquí cualquier nota, log o información adicional…") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                maxLines = 5
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProcessButton(
-    videoCount: Int,
-    enabled: Boolean,
-    onClick: () -> Unit
-) {
+private fun StepperButton(onClick: () -> Unit, content: @Composable () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .height(56.dp)
-            .clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = if (enabled) Color(0xFF6366F1) else Color(0xFF94A3B8),
-        shadowElevation = 4.dp
+        modifier = Modifier.size(40.dp),
+        shape = CircleShape,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline
+        ),
+        color = Color.Transparent
     ) {
         Box(contentAlignment = Alignment.Center) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntervalChip(
+    text: String,
+    value: Int,
+    selected: Int,
+    onClick: (Int) -> Unit
+) {
+    val isSelected = value == selected
+    Surface(
+        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(8.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable { onClick(value) }
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
             Text(
-                text = if (videoCount > 1) "🚀 Procesar $videoCount Videos" else "🚀 Procesar Video",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
             )
         }
     }
+}
+
+@Composable
+private fun NotesTextArea(notes: String, onNotesChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = notes,
+        onValueChange = onNotesChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Notas / logs adicionales (opcional)") },
+        placeholder = { Text("Pegá logs, descripción del bug o contexto...") },
+        shape = RoundedCornerShape(12.dp),
+        minLines = 3,
+        maxLines = 5
+    )
 }
 
 @Composable
@@ -675,73 +829,59 @@ private fun ProgressSection(
     message: String,
     logs: List<String>
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "📊 Progreso",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
-                )
-                Text(
-                    text = "$progress%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF6366F1),
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = "Procesando...",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             LinearProgressIndicator(
                 progress = progress / 100f,
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF6366F1)
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = message,
+                text = "$progress% - $message",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF64748B)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
             if (logs.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "📋 Logs de Procesamiento",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1E293B)
+                    text = "📋 Logs",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp)
-                        .background(Color(0xFFF1F5F9))
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(12.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
-                    ) {
+                    LazyColumn {
                         items(logs.size) { index ->
                             Text(
                                 text = logs[index],
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF64748B),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                             )
+                            if (index < logs.size - 1) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
                         }
                     }
                 }
@@ -755,52 +895,37 @@ private fun ResultsSection(
     pdfPath: String?,
     zipPath: String?
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
             Text(
                 text = "🎁 Resultados",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Status
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.1f))
-            ) {
-                Text(
-                    text = "✅ Completado",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF10B981),
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // PDF
             if (pdfPath != null) {
                 ResultItem(
                     icon = "📄",
-                    title = "PDF Report",
-                    onClick = { /* TODO: Open/share PDF */ }
+                    title = "Documento PDF",
+                    onClick = { /* TODO: View PDF */ }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+                ResultItem(
+                    icon = "🔗",
+                    title = "Compartir PDF",
+                    onClick = { /* TODO: Share PDF */ }
+                )
             }
-
-            // ZIP
             if (zipPath != null) {
+                Spacer(modifier = Modifier.height(8.dp))
                 ResultItem(
                     icon = "📦",
                     title = "ZIP Completo",
@@ -812,38 +937,34 @@ private fun ResultsSection(
 }
 
 @Composable
-private fun ResultItem(
-    icon: String,
-    title: String,
-    onClick: () -> Unit
-) {
+private fun ResultItem(icon: String, title: String, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = Color(0xFFEEF2FF),
-        shadowElevation = 2.dp
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(text = icon, style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = icon,
+                style = MaterialTheme.typography.titleLarge
+            )
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF6366F1),
-                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Acción",
-                tint = Color(0xFF6366F1),
+                imageVector = Icons.Default.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -851,37 +972,62 @@ private fun ResultItem(
 }
 
 @Composable
-private fun InfoSection() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+private fun InfoBanner() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "ℹ️ Información:",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            InfoItem("• Tamaño máximo: 2GB")
-            InfoItem("• Formatos: MP4, MKV, AVI, MOV, WebM")
-            InfoItem("• El procesamiento puede tomar varios minutos dependiendo del tamaño del video")
-            InfoItem("• Usá el bot de Telegram para procesamiento más rápido")
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Información",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                InfoItem("Tamaño máximo: 2 GB por archivo")
+                InfoItem("El procesamiento puede tomar varios minutos")
+                InfoItem("Usá el bot de Telegram para mayor velocidad")
+            }
         }
     }
 }
 
 @Composable
 private fun InfoItem(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = Color(0xFF64748B),
-        modifier = Modifier.padding(vertical = 4.dp)
-    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = "·",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

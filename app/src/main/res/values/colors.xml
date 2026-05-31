@@ -1,36 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary colors (matching web design - purple/blue) -->
-    <color name="primary">#6366F1</color>
-    <color name="primary_dark">#4F46E5</color>
-    <color name="primary_light">#818CF8</color>
-    
-    <!-- Secondary colors -->
-    <color name="secondary">#A5B4FC</color>
-    <color name="secondary_container">#E0E7FF</color>
-    
-    <!-- Background colors -->
-    <color name="background">#F8FAFC</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="surface_variant">#F1F5F9</color>
-    
-    <!-- Text colors -->
+    <!-- M3 Primary — Blue -->
+    <color name="primary">#0B57D0</color>
+    <color name="primary_dark">#0842A0</color>
     <color name="on_primary">#FFFFFF</color>
-    <color name="on_surface">#1E293B</color>
-    <color name="on_surface_variant">#64748B</color>
+    <color name="primary_container">#D3E3FD</color>
+    <color name="on_primary_container">#041E49</color>
     
-    <!-- Status colors -->
+    <!-- M3 Secondary -->
+    <color name="secondary">#5B5EA6</color>
+    <color name="on_secondary">#FFFFFF</color>
+    <color name="secondary_container">#E2DFFF</color>
+    <color name="on_secondary_container">#13007B</color>
+    
+    <!-- M3 Tertiary — Teal -->
+    <color name="tertiary">#0077B6</color>
+    <color name="tertiary_container">#C8E6FF</color>
+    <color name="on_tertiary_container">#041E49</color>
+    
+    <!-- M3 Error -->
+    <color name="error">#B3261E</color>
+    <color name="on_error">#FFFFFF</color>
+    <color name="error_container">#F9DEDC</color>
+    <color name="on_error_container">#410E0B</color>
+    
+    <!-- M3 Background / Surface -->
+    <color name="background">#F8F9FF</color>
+    <color name="surface">#F8F9FF</color>
+    <color name="surface_variant">#DAE2F9</color>
+    <color name="on_surface">#1A1B1E</color>
+    <color name="on_surface_variant">#44474E</color>
+    
+    <!-- M3 Outline -->
+    <color name="outline">#747780</color>
+    <color name="outline_variant">#C3C7CF</color>
+    
+    <!-- M3 Inverse -->
+    <color name="inverse_surface">#2E3036</color>
+    <color name="inverse_on_surface">#F1F0F4</color>
+    <color name="inverse_primary">#A8C7FA</color>
+    
+    <!-- Elevation tints (for cards with elevation) -->
+    <color name="surface_1">#ECF1FB</color>
+    <color name="surface_2">#E4ECFB</color>
+    <color name="surface_3">#DBE6FA</color>
+    
+    <!-- Status colors (adapted to M3) -->
     <color name="success">#10B981</color>
-    <color name="error">#EF4444</color>
     <color name="warning">#F59E0B</color>
     
-    <!-- Border colors -->
-    <color name="border">#E2E8F0</color>
-    <color name="border_dashed">#94A3B8</color>
-    
-    <!-- Upload zone -->
-    <color name="upload_background">#EEF2FF</color>
-    <color name="upload_icon">#6366F1</color>
+    <!-- Upload zone (using primary container) -->
+    <color name="upload_background">#D3E3FD</color>
+    <color name="upload_icon">#0B57D0</color>
     
     <!-- Launcher icon background -->
     <color name="ic_launcher_background">#FFFFFF</color>

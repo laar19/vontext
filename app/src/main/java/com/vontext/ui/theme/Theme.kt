@@ -17,14 +17,60 @@ import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
     secondary = Secondary,
-    tertiary = Secondary
+    onSecondary = OnSecondary,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    tertiary = Tertiary,
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
+    error = Error,
+    onError = OnError,
+    errorContainer = ErrorContainer,
+    onErrorContainer = OnErrorContainer,
+    background = Background,
+    onBackground = OnSurface,
+    surface = Surface,
+    onSurface = OnSurface,
+    surfaceVariant = SurfaceVariant,
+    onSurfaceVariant = OnSurfaceVariant,
+    outline = Outline,
+    outlineVariant = OutlineVariant,
+    inverseSurface = InverseSurface,
+    inverseOnSurface = InverseOnSurface,
+    inversePrimary = InversePrimary
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
+    onPrimary = OnPrimary,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
     secondary = Secondary,
-    tertiary = Secondary
+    onSecondary = OnSecondary,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    tertiary = Tertiary,
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
+    error = Error,
+    onError = OnError,
+    errorContainer = ErrorContainer,
+    onErrorContainer = OnErrorContainer,
+    background = Background,
+    onBackground = OnSurface,
+    surface = Surface,
+    onSurface = OnSurface,
+    surfaceVariant = SurfaceVariant,
+    onSurfaceVariant = OnSurfaceVariant,
+    outline = Outline,
+    outlineVariant = OutlineVariant,
+    inverseSurface = InverseSurface,
+    inverseOnSurface = InverseOnSurface,
+    inversePrimary = InversePrimary
 )
 
 @Composable
