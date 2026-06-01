@@ -101,18 +101,16 @@ fun HomeScreen(
     
     Scaffold(
         floatingActionButton = {
-            if (selectedVideos.isEmpty()) {
-                FloatingActionButton(
-                    onClick = { videoPicker.launch("video/*") },
-                    containerColor = BlueFAB,
-                    contentColor = Color.White
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Agregar videos",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+            FloatingActionButton(
+                onClick = { videoPicker.launch("video/*") },
+                containerColor = BlueFAB,
+                contentColor = Color.White
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Agregar videos",
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     ) { paddingValues ->
