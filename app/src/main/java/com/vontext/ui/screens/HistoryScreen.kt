@@ -35,6 +35,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -101,7 +102,7 @@ fun HistoryScreen(
             )
         }
     ) { padding ->
-        if (jobs.isEmpty() || jobs.all { it.status != JobStatus.COMPLETED }) {
+        if (jobs.isEmpty()) {
             EmptyState(
                 modifier = Modifier.padding(padding)
             )
@@ -114,7 +115,7 @@ fun HistoryScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp, 16.dp, 16.dp, 100.dp)
             ) {
                 items(
-                    items = jobs.filter { it.status == JobStatus.COMPLETED },
+                    items = jobs,
                     key = { it.jobId }
                 ) { job ->
                     HistoryItem(
@@ -174,23 +175,6 @@ private fun EmptyState(modifier: Modifier = Modifier) {
                     textAlign = TextAlign.Center
                 )
             }
-            Button(
-                onClick = { /* TODO: Navigate to Home */ },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Nuevo trabajo",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
         }
     }
 }
@@ -202,6 +186,8 @@ private fun HistoryItem(
     onSharePdf: () -> Unit,
     onShareZip: () -> Unit
 ) {
+    val statusConfig = getStatusConfig(job.status)
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -215,7 +201,6 @@ private fun HistoryItem(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -233,7 +218,7 @@ private fun HistoryItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = formatDate(job.completedAt ?: job.createdAt),
+                        text = formatDate(job.completedAt ?: job.startedAt ?: job.createdAt),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
@@ -241,49 +226,83 @@ private fun HistoryItem(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Surface(
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                    color = statusConfig.color.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "Completado",
+                        text = statusConfig.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        color = statusConfig.color,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                ActionButton(
-                    icon = Icons.Default.Description,
-                    label = "PDF",
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = onViewPdf,
-                    modifier = Modifier.weight(1f)
+            if (job.status == JobStatus.PENDING || job.status == JobStatus.ANALYZING || 
+                job.status == JobStatus.EXTRACTING_FRAMES || job.status == JobStatus.TRANSCRIBING ||
+                job.status == JobStatus.GENERATING_PDF || job.status == JobStatus.CREATING_ZIP) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = (job.progress.coerceIn(0, 100)) / 100f,
+                    modifier = Modifier.fillMaxWidth()
                 )
-                ActionButton(
-                    icon = Icons.Default.Share,
-                    label = "Compartir",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    onClick = onSharePdf,
-                    modifier = Modifier.weight(1f)
-                )
-                ActionButton(
-                    icon = Icons.Default.FolderZip,
-                    label = "ZIP",
-                    color = MaterialTheme.colorScheme.error,
-                    onClick = onShareZip,
-                    modifier = Modifier.weight(1f)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = job.progressMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            if (job.status == JobStatus.COMPLETED) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ActionButton(
+                        icon = Icons.Default.Description,
+                        label = "PDF",
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = onViewPdf,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        icon = Icons.Default.Share,
+                        label = "Compartir",
+                        color = MaterialTheme.colorScheme.tertiary,
+                        onClick = onSharePdf,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ActionButton(
+                        icon = Icons.Default.FolderZip,
+                        label = "ZIP",
+                        color = MaterialTheme.colorScheme.error,
+                        onClick = onShareZip,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
         }
+    }
+}
+
+private data class StatusConfig(val label: String, val color: Color)
+
+@Composable
+private fun getStatusConfig(status: JobStatus): StatusConfig {
+    return when (status) {
+        JobStatus.PENDING -> StatusConfig("En cola", MaterialTheme.colorScheme.onSurfaceVariant)
+        JobStatus.ANALYZING -> StatusConfig("Analizando", MaterialTheme.colorScheme.primary)
+        JobStatus.EXTRACTING_FRAMES -> StatusConfig("Extrayendo frames", MaterialTheme.colorScheme.primary)
+        JobStatus.TRANSCRIBING -> StatusConfig("Transcribiendo", MaterialTheme.colorScheme.primary)
+        JobStatus.GENERATING_PDF -> StatusConfig("Generando PDF", MaterialTheme.colorScheme.primary)
+        JobStatus.CREATING_ZIP -> StatusConfig("Creando ZIP", MaterialTheme.colorScheme.primary)
+        JobStatus.COMPLETED -> StatusConfig("Completado", MaterialTheme.colorScheme.onSecondaryContainer)
+        JobStatus.FAILED -> StatusConfig("Fallido", MaterialTheme.colorScheme.onErrorContainer)
+        JobStatus.CANCELLED -> StatusConfig("Cancelado", MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

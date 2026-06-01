@@ -7,6 +7,9 @@ import com.vontext.data.local.preferences.SettingsRepository
 import com.vontext.data.repository.JobRepository
 import com.vontext.domain.model.ProcessingConfig
 import com.vontext.domain.usecase.ProcessVideoUseCase
+import com.vontext.processor.whisper.LocalWhisperTranscriber
+import com.vontext.processor.whisper.ModelDownloader
+import com.vontext.processor.whisper.WhisperModel
 import com.vontext.processor.whisper.WhisperMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,11 +19,17 @@ import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
 
+data class DownloadProgress(val downloaded: Long, val total: Long) {
+    val percent: Int = if (total > 0) ((downloaded * 100) / total).toInt() else 0
+}
+
 @HiltViewModel
 class VideoViewModel @Inject constructor(
     private val processVideoUseCase: ProcessVideoUseCase,
     private val jobRepository: JobRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val localWhisperTranscriber: LocalWhisperTranscriber,
+    private val modelDownloader: ModelDownloader
 ) : ViewModel() {
 
     private val _processingState = MutableStateFlow<ProcessingState>(ProcessingState.Idle)
@@ -47,6 +56,38 @@ class VideoViewModel @Inject constructor(
         _whisperMode.value = mode
         viewModelScope.launch {
             settingsRepository.updateWhisperMode(mode)
+        }
+    }
+
+    private val _modelDownloadProgress = MutableStateFlow<DownloadProgress?>(null)
+    val modelDownloadProgress: StateFlow<DownloadProgress?> = _modelDownloadProgress.asStateFlow()
+
+    private val _isDownloadingModel = MutableStateFlow(false)
+    val isDownloadingModel: StateFlow<Boolean> = _isDownloadingModel.asStateFlow()
+
+    private val _isModelDownloaded = MutableStateFlow(localWhisperTranscriber.isModelDownloaded(WhisperModel.SMALL))
+    val isModelDownloaded: StateFlow<Boolean> = _isModelDownloaded.asStateFlow()
+
+    fun checkModelDownloadStatus() {
+        _isModelDownloaded.value = localWhisperTranscriber.isModelDownloaded(WhisperModel.SMALL)
+    }
+
+    fun downloadModel() {
+        viewModelScope.launch {
+            _isDownloadingModel.value = true
+            modelDownloader.downloadModel(
+                model = WhisperModel.SMALL,
+                progressCallback = { downloaded, total ->
+                    _modelDownloadProgress.value = DownloadProgress(downloaded, total)
+                }
+            ).onSuccess {
+                _isDownloadingModel.value = false
+                _modelDownloadProgress.value = null
+                _isModelDownloaded.value = true
+            }.onFailure { error ->
+                _isDownloadingModel.value = false
+                _modelDownloadProgress.value = null
+            }
         }
     }
 

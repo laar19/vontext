@@ -87,8 +87,9 @@ fun VontextApp() {
     ) { padding ->
         when (selectedTab) {
             0 -> HomeScreen(
-                onNavigateToSettings = { selectedTab = 2 },
-                onNavigateToHistory = { selectedTab = 1 }
+                onNavigateToProcessing = { videos, processTogether, interval, notes ->
+                    // TODO: Iniciar procesamiento
+                }
             )
             1 -> HistoryScreen(
                 onNavigateBack = { selectedTab = 0 }

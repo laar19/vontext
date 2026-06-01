@@ -38,20 +38,20 @@ class VideoProcessor @Inject constructor(
                 when (config.whisperMode) {
                     WhisperMode.LOCAL_TINY, WhisperMode.LOCAL_BASE,
                     WhisperMode.LOCAL_SMALL, WhisperMode.LOCAL_MEDIUM -> {
-                        progressCallback?.invoke(30, "Transcribiendo audio (local)...")
+                        progressCallback?.invoke(40, "Transcribiendo audio (local)...")
                         localWhisperTranscriber.transcribe(videoFile, outputDir, progressCallback)
                             .getOrNull()
                     }
                     WhisperMode.REMOTE_OPENAI, WhisperMode.REMOTE_GROQ,
                     WhisperMode.REMOTE_DEEPSEEK, WhisperMode.REMOTE_OLLAMA -> {
-                        progressCallback?.invoke(30, "Transcribiendo audio (remoto)...")
+                        progressCallback?.invoke(40, "Transcribiendo audio (remoto)...")
                         remoteWhisperTranscriber.transcribe(videoFile, outputDir, progressCallback)
                             .getOrNull()
                     }
                 }
             } else null
 
-            progressCallback?.invoke(60, "Generando PDF...")
+            progressCallback?.invoke(70, "Generando PDF...")
             pdfGenerator.generate(
                 outputDir = outputDir,
                 videoFilename = videoFile.name,
@@ -62,7 +62,7 @@ class VideoProcessor @Inject constructor(
                 notes = config.additionalNotes
             ).getOrThrow()
 
-            progressCallback?.invoke(80, "Creando ZIP...")
+            progressCallback?.invoke(90, "Creando ZIP...")
             val zipResult = zipCreator.create(outputDir).getOrThrow()
 
             progressCallback?.invoke(100, "Procesamiento completado")

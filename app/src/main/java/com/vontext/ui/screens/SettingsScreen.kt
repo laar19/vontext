@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Visibility
@@ -34,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,21 +57,27 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vontext.viewmodel.SettingsViewModel
+import com.vontext.viewmodel.VideoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    videoViewModel: VideoViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
-    val settings by viewModel.settings.collectAsState(initial = null)
+    val settings by settingsViewModel.settings.collectAsState(initial = null)
+    val isModelDownloaded by videoViewModel.isModelDownloaded.collectAsState(initial = false)
+    val modelDownloadProgress by videoViewModel.modelDownloadProgress.collectAsState(initial = null)
+    val isDownloadingModel by videoViewModel.isDownloadingModel.collectAsState(initial = false)
     var showClearDialog by remember { mutableStateOf(false) }
+    var justDownloadedModel by remember { mutableStateOf(false) }
     
-    // Dialog states
     var showApiKeyDialog by remember { mutableStateOf(false) }
     var showEndpointDialog by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showModelDownloadDialog by remember { mutableStateOf(false) }
     
     var apiKey by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf("https://api.openai.com/v1") }
@@ -77,7 +85,6 @@ fun SettingsScreen(
     var showApiKey by remember { mutableStateOf(false) }
     var language by remember { mutableStateOf("es") }
     
-    // Update local state when settings change
     androidx.compose.runtime.LaunchedEffect(settings) {
         settings?.let {
             apiKey = it.openaiApiKey ?: ""
@@ -109,6 +116,7 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
+                .padding(bottom = 100.dp)
         ) {
             // API de Whisper section
             ListSubheader("API de Whisper")
@@ -133,6 +141,12 @@ fun SettingsScreen(
                     onClick = { showModelDialog = true }
                 )
                 ConfigRow(
+                    icon = Icons.Default.Download,
+                    label = "Modelo Local",
+                    value = if (isModelDownloaded) "Descargado (~466 MB)" else "No descargado",
+                    onClick = { showModelDownloadDialog = true }
+                )
+                ConfigRow(
                     icon = Icons.Default.Language,
                     label = "Idioma",
                     value = if (language == "es") "Español" else "English",
@@ -149,7 +163,7 @@ fun SettingsScreen(
                 ConfigRow(
                     icon = Icons.Outlined.Info,
                     label = "Versión",
-                    value = "1.0.3",
+                    value = "1.0.8",
                     showChevron = false
                 )
             }
@@ -193,7 +207,7 @@ fun SettingsScreen(
             value = apiKey,
             onValueChange = { apiKey = it },
             onSave = {
-                viewModel.updateApiKey(apiKey)
+                settingsViewModel.updateApiKey(apiKey)
                 showApiKeyDialog = false
             },
             onDismiss = { showApiKeyDialog = false },
@@ -212,7 +226,7 @@ fun SettingsScreen(
             value = endpoint,
             onValueChange = { endpoint = it },
             onSave = {
-                viewModel.updateEndpoint(endpoint)
+                settingsViewModel.updateEndpoint(endpoint)
                 showEndpointDialog = false
             },
             onDismiss = { showEndpointDialog = false },
@@ -227,7 +241,7 @@ fun SettingsScreen(
             value = model,
             onValueChange = { model = it },
             onSave = {
-                viewModel.updateModel(model)
+                settingsViewModel.updateModel(model)
                 showModelDialog = false
             },
             onDismiss = { showModelDialog = false },
@@ -239,35 +253,144 @@ fun SettingsScreen(
     if (showLanguageDialog) {
         LanguageDialog(
             currentLanguage = language,
-            onLanguageSelected = { newLang ->
-                language = newLang
-                viewModel.updateLanguage(newLang)
+            onLanguageSelected = { lang ->
+                settingsViewModel.updateLanguage(lang)
+                language = lang
             },
             onDismiss = { showLanguageDialog = false }
         )
     }
     
-    // Clear History Dialog
+    // Model Download Dialog
+    if (showModelDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isDownloadingModel) {
+                    justDownloadedModel = false
+                    showModelDownloadDialog = false
+                }
+            },
+            title = {
+                Text(text = "Modelo Local Whisper")
+            },
+            text = {
+                Column {
+                    if (justDownloadedModel) {
+                        Text(
+                            text = "✅ Modelo descargado exitosamente",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "El modelo Small (~466 MB) está listo para usar en transcripción offline.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (isModelDownloaded) {
+                        Text(
+                            text = "El modelo Small (~466 MB) ya está descargado en tu dispositivo.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "💡 El modelo se usa para transcripción offline. Puedes eliminarlo para liberar espacio y volver a descargarlo cuando lo necesites.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    } else if (isDownloadingModel) {
+                        Text(
+                            text = "Descargando modelo Small (~466 MB)...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        LinearProgressIndicator(
+                            progress = (modelDownloadProgress?.percent ?: 0) / 100f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        modelDownloadProgress?.let { prog ->
+                            Text(
+                                text = "${prog.percent}% (${formatBytes(prog.downloaded)} / ${formatBytes(prog.total)})",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Descarga el modelo Small (~466 MB) para usar transcripción offline sin necesidad de conexión a internet.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "💡 La descarga puede tardar varios minutos dependiendo de tu conexión. El modelo se guarda en tu dispositivo.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (justDownloadedModel) {
+                    Button(
+                        onClick = {
+                            justDownloadedModel = false
+                            showModelDownloadDialog = false
+                        }
+                    ) {
+                        Text("Aceptar")
+                    }
+                } else if (isModelDownloaded) {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            // TODO: Implementar eliminar modelo
+                            showModelDownloadDialog = false
+                        }
+                    ) {
+                        Text("Eliminar")
+                    }
+                } else if (!isDownloadingModel) {
+                    Button(
+                        onClick = {
+                            videoViewModel.downloadModel()
+                            justDownloadedModel = true
+                        }
+                    ) {
+                        Text("Descargar")
+                    }
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { showModelDownloadDialog = false },
+                    enabled = !isDownloadingModel
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+    
+    // Clear Data Dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
             title = { Text("¿Limpiar historial?") },
-            text = { Text("Se borrarán todos los trabajos del historial.") },
+            text = { Text("Esta acción eliminará todos los trabajos procesados. No se pueden deshacer los cambios.") },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
-                        viewModel.clearHistory()
+                        settingsViewModel.clearHistory()
                         showClearDialog = false
                     }
                 ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text("Limpiar")
                 }
             },
             dismissButton = {
@@ -276,6 +399,15 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+private fun formatBytes(bytes: Long): String {
+    return when {
+        bytes >= 1_000_000_000 -> String.format("%.1f GB", bytes / 1_000_000_000.0)
+        bytes >= 1_000_000 -> String.format("%.1f MB", bytes / 1_000_000.0)
+        bytes >= 1_000 -> String.format("%.1f KB", bytes / 1_000.0)
+        else -> "$bytes B"
     }
 }
 

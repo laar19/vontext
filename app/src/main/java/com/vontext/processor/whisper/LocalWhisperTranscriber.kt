@@ -16,15 +16,33 @@ class LocalWhisperTranscriber @Inject constructor(
     private val audioExtractor: AudioExtractor
 ) {
     private var whisperContext: Long = 0
+    private var currentModel: WhisperModel? = null
+
+    fun isModelDownloaded(model: WhisperModel): Boolean {
+        val modelDir = File(context.filesDir, "whisper_models")
+        val modelFile = File(modelDir, "${model.filename}.bin")
+        return modelFile.exists() && modelFile.length() > 0
+    }
+
+    fun getModelSize(model: WhisperModel): Long {
+        val modelDir = File(context.filesDir, "whisper_models")
+        val modelFile = File(modelDir, "${model.filename}.bin")
+        return if (modelFile.exists()) modelFile.length() else 0
+    }
 
     suspend fun loadModel(model: WhisperModel): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
+                if (currentModel == model && whisperContext != 0L) {
+                    return@withContext Result.success(Unit)
+                }
+                
                 val modelFile = getModelFile(model)
                 whisperContext = WhisperCppWrapper().initModel(modelFile.absolutePath)
                 if (whisperContext == 0L) {
                     Result.failure(Exception("No se pudo inicializar el modelo Whisper"))
                 } else {
+                    currentModel = model
                     Result.success(Unit)
                 }
             } catch (e: Exception) {
@@ -40,10 +58,10 @@ class LocalWhisperTranscriber @Inject constructor(
     ): Result<TranscriptionResult> {
         return withContext(Dispatchers.IO) {
             try {
-                progressCallback?.invoke(10, "Extrayendo audio...")
+                progressCallback?.invoke(42, "Extrayendo audio...")
                 val audioFile = audioExtractor.extractAudio(videoFile, outputDir)
 
-                progressCallback?.invoke(30, "Transcribiendo con Whisper local...")
+                progressCallback?.invoke(50, "Transcribiendo con Whisper local...")
                 if (whisperContext == 0L) {
                     return@withContext Result.failure(Exception("Modelo Whisper no cargado"))
                 }
@@ -54,7 +72,7 @@ class LocalWhisperTranscriber @Inject constructor(
                 )
 
                 saveTranscriptionToFile(result, outputDir)
-                progressCallback?.invoke(50, "Transcripción completada")
+                progressCallback?.invoke(68, "Transcripción completada")
 
                 Result.success(result)
             } catch (e: Exception) {

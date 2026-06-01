@@ -10,6 +10,7 @@ import com.vontext.data.repository.JobRepository
 import com.vontext.domain.model.JobStatus
 import com.vontext.domain.model.ProcessingConfig
 import com.vontext.processor.VideoProcessor
+import com.vontext.processor.whisper.LocalWhisperTranscriber
 import com.vontext.processor.whisper.WhisperMode
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -20,7 +21,8 @@ class VideoProcessingWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val videoProcessor: VideoProcessor,
-    private val jobRepository: JobRepository
+    private val jobRepository: JobRepository,
+    private val localWhisperTranscriber: LocalWhisperTranscriber
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -70,6 +72,8 @@ class VideoProcessingWorker @AssistedInject constructor(
         } catch (e: Exception) {
             jobRepository.updateError(jobId, JobStatus.FAILED, e.message)
             Result.failure()
+        } finally {
+            localWhisperTranscriber.release()
         }
     }
 
