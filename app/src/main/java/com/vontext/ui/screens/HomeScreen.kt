@@ -1,13 +1,9 @@
 package com.vontext.ui.screens
 
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import kotlin.collections.MutableList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,32 +15,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.RocketLaunch
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,38 +41,19 @@ import com.vontext.ui.components.NotesField
 import com.vontext.ui.components.SectionLabel
 import com.vontext.ui.components.StepperBlock
 import com.vontext.ui.components.VideoQueueItem
-import com.vontext.ui.theme.BlueFAB
-import com.vontext.ui.theme.GreenDark
 import com.vontext.ui.theme.GreenVontext
-import com.vontext.ui.theme.VideoThumbnail
 import com.vontext.viewmodel.VideoViewModel
-import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 @Composable
 fun HomeScreen(
     viewModel: VideoViewModel = hiltViewModel(),
+    selectedVideos: MutableList<Uri>,
     onNavigateToProcessing: (List<Uri>, Boolean, Int, String?) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    
-    // State
-    val selectedVideos = remember { mutableStateListOf<Uri>() }
     var processTogether by remember { mutableStateOf(true) }
     var interval by remember { mutableIntStateOf(5) }
     var notes by remember { mutableStateOf("") }
-    
-    // Video picker - GetMultipleContents para selección múltiple
-    val videoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris ->
-        uris.forEach { uri ->
-            if (uri !in selectedVideos) {
-                selectedVideos.add(uri)
-            }
-        }
-    }
     
     // Colores aleatorios para thumbnails (consistente por URI)
     val thumbnailColors = remember { mutableMapOf<String, Color>() }
@@ -99,29 +67,13 @@ fun HomeScreen(
         }
     }
     
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { videoPicker.launch("video/*") },
-                containerColor = BlueFAB,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar videos",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
             // Top bar title (solo cuando hay videos)
             if (selectedVideos.isNotEmpty()) {
                 item {
@@ -216,16 +168,22 @@ fun HomeScreen(
                     shape = MaterialTheme.shapes.large,
                     shadowElevation = 2.dp
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
                         StepperBlock(
                             value = interval,
                             onValueChange = { interval = it }
                         )
                         
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
                         androidx.compose.material3.Divider(
                             color = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier.padding(vertical = 4.dp)
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
                         
                         NotesField(
                             value = notes,
@@ -251,5 +209,4 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(80.dp))
             }
         }
-    }
 }

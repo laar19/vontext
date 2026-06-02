@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 fun NotesField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Pegá logs, descripción del bug, contexto del agente...",
+    placeholder: String = "Pega logs, descripción del bug, contexto del agente...",
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -62,7 +62,7 @@ fun NotesField(
             placeholder = { Text(placeholder) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp),
+                .height(120.dp),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
             keyboardActions = KeyboardActions(),

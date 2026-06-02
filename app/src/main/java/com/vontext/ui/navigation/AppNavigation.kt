@@ -1,13 +1,18 @@
 package com.vontext.ui.navigation
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -16,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -23,9 +29,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import com.vontext.ui.screens.HistoryScreen
 import com.vontext.ui.screens.HomeScreen
 import com.vontext.ui.screens.SettingsScreen
+import com.vontext.ui.theme.BlueFAB
 
 sealed class BottomNavItem(
     val route: String,
@@ -58,6 +66,20 @@ fun VontextApp() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     val navItems = listOf(BottomNavItem.Home, BottomNavItem.History, BottomNavItem.Settings)
 
+    // Estado compartido para videos seleccionados
+    val selectedVideos = rememberSaveable { mutableStateListOf<Uri>() }
+
+    // Video picker
+    val videoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        uris.forEach { uri ->
+            if (uri !in selectedVideos) {
+                selectedVideos.add(uri)
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar(
@@ -83,10 +105,26 @@ fun VontextApp() {
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            if (selectedTab == 0) {
+                FloatingActionButton(
+                    onClick = { videoPicker.launch("video/*") },
+                    containerColor = BlueFAB,
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Agregar videos",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
         }
     ) { padding ->
         when (selectedTab) {
             0 -> HomeScreen(
+                selectedVideos = selectedVideos,
                 onNavigateToProcessing = { videos, processTogether, interval, notes ->
                     // TODO: Iniciar procesamiento
                 }
