@@ -2,6 +2,7 @@ package com.vontext.ui.navigation
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import com.vontext.ui.screens.ProcessingParams
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,8 +32,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.vontext.processor.whisper.WhisperMode
 import com.vontext.ui.screens.HistoryScreen
 import com.vontext.ui.screens.HomeScreen
+import com.vontext.ui.screens.ProcessingScreen
 import com.vontext.ui.screens.SettingsScreen
 import com.vontext.ui.theme.BlueFAB
 
@@ -56,7 +59,7 @@ sealed class BottomNavItem(
     )
     object Settings : BottomNavItem(
         "settings",
-        "Configuración",
+        "Configuraci\u00F3n",
         Icons.Filled.Settings,
         Icons.Outlined.Settings
     )
@@ -65,6 +68,8 @@ sealed class BottomNavItem(
 @Composable
 fun VontextApp() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
+    var showProcessing by remember { mutableStateOf(false) }
+    var processingParams by remember { mutableStateOf<ProcessingParams?>(null) }
     val navItems = listOf(BottomNavItem.Home, BottomNavItem.History, BottomNavItem.Settings)
 
     val selectedVideos = remember { mutableStateListOf<Uri>() }
@@ -79,62 +84,86 @@ fun VontextApp() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 8.dp
-            ) {
-                navItems.forEachIndexed { index, item ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.title
-                            )
-                        },
-                        label = { Text(item.title) },
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.primary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
-                }
+    if (showProcessing) {
+        ProcessingScreen(
+            params = processingParams,
+            onComplete = {
+                showProcessing = false
+                processingParams = null
+                selectedVideos.clear()
+                selectedTab = 1
+            },
+            onBack = {
+                showProcessing = false
+                processingParams = null
             }
-        },
-        floatingActionButton = {
-            if (selectedTab == 0) {
-                FloatingActionButton(
-                    onClick = { videoPicker.launch("video/*") },
-                    containerColor = BlueFAB,
-                    contentColor = Color.White
+        )
+    } else {
+        Scaffold(
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Agregar videos",
-                        modifier = Modifier.size(28.dp)
-                    )
+                    navItems.forEachIndexed { index, item ->
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.title
+                                )
+                            },
+                            label = { Text(item.title) },
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                            )
+                        )
+                    }
+                }
+            },
+            floatingActionButton = {
+                if (selectedTab == 0) {
+                    FloatingActionButton(
+                        onClick = { videoPicker.launch("video/*") },
+                        containerColor = BlueFAB,
+                        contentColor = Color.White
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Agregar videos",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
-        }
-    ) { padding ->
-        when (selectedTab) {
-            0 -> HomeScreen(
-                modifier = Modifier.padding(padding),
-                selectedVideos = selectedVideos,
-                onNavigateToProcessing = { videos, processTogether, interval, notes ->
-                    // TODO: Iniciar procesamiento
-                }
-            )
-            1 -> HistoryScreen(
-                onNavigateBack = { selectedTab = 0 }
-            )
-            2 -> SettingsScreen(
-                onNavigateBack = { selectedTab = 0 }
-            )
+        ) { padding ->
+            when (selectedTab) {
+                0 -> HomeScreen(
+                    modifier = Modifier.padding(padding),
+                    selectedVideos = selectedVideos,
+                    onNavigateToProcessing = { videos, together, interval, notes, mode ->
+                        processingParams = ProcessingParams(
+                            videos = videos,
+                            processTogether = together,
+                            interval = interval,
+                            notes = notes,
+                            whisperMode = mode
+                        )
+                        showProcessing = true
+                    },
+                    onNavigateToSettings = { selectedTab = 2 }
+                )
+                1 -> HistoryScreen(
+                    onNavigateBack = { selectedTab = 0 }
+                )
+                2 -> SettingsScreen(
+                    onNavigateBack = { selectedTab = 0 }
+                )
+            }
         }
     }
 }

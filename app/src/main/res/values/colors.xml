@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- M3 Primary — Blue -->
-    <color name="primary">#0B57D0</color>
-    <color name="primary_dark">#0842A0</color>
+    <!-- M3 Primary — Green (Vontext) -->
+    <color name="primary">#1A6B4A</color>
+    <color name="primary_dark">#134D36</color>
     <color name="on_primary">#FFFFFF</color>
-    <color name="primary_container">#D3E3FD</color>
-    <color name="on_primary_container">#041E49</color>
+    <color name="primary_container">#E8F5EE</color>
+    <color name="on_primary_container">#0D3B28</color>
     
-    <!-- M3 Secondary -->
-    <color name="secondary">#5B5EA6</color>
+    <!-- M3 Secondary — Green tone -->
+    <color name="secondary">#2E8B62</color>
     <color name="on_secondary">#FFFFFF</color>
-    <color name="secondary_container">#E2DFFF</color>
-    <color name="on_secondary_container">#13007B</color>
+    <color name="secondary_container">#D1F0E0</color>
+    <color name="on_secondary_container">#0A3B24</color>
     
     <!-- M3 Tertiary — Teal -->
     <color name="tertiary">#0077B6</color>
@@ -50,8 +50,8 @@
     <color name="warning">#F59E0B</color>
     
     <!-- Upload zone (using primary container) -->
-    <color name="upload_background">#D3E3FD</color>
-    <color name="upload_icon">#0B57D0</color>
+    <color name="upload_background">#E8F5EE</color>
+    <color name="upload_icon">#1A6B4A</color>
     
     <!-- Launcher icon background -->
     <color name="ic_launcher_background">#1A6B4A</color>

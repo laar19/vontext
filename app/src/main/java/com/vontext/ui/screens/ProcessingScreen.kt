@@ -1,5 +1,6 @@
 package com.vontext.ui.screens
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,13 +46,37 @@ import com.vontext.ui.theme.GreenVontext
 import com.vontext.viewmodel.VideoViewModel
 import com.vontext.viewmodel.VideoViewModel.ProcessingState
 
+data class ProcessingParams(
+    val videos: List<Uri>,
+    val processTogether: Boolean,
+    val interval: Int,
+    val notes: String?,
+    val whisperMode: com.vontext.processor.whisper.WhisperMode
+)
+
 @Composable
 fun ProcessingScreen(
     viewModel: VideoViewModel = hiltViewModel(),
+    params: ProcessingParams? = null,
     onComplete: () -> Unit,
     onBack: () -> Unit
 ) {
     val processingState by viewModel.processingState.collectAsState()
+    
+    // Iniciar procesamiento si hay parámetros
+    LaunchedEffect(params) {
+        if (params != null) {
+            viewModel.processVideos(
+                videos = params.videos,
+                processTogether = params.processTogether,
+                interval = params.interval,
+                notes = params.notes,
+                whisperMode = params.whisperMode,
+                onProgress = { _, _ -> },
+                onComplete = { _ -> }
+            )
+        }
+    }
     
     // Observar completado
     LaunchedEffect(processingState) {
