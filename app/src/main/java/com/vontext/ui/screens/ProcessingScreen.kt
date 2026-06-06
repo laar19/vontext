@@ -29,6 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,6 +66,8 @@ fun ProcessingScreen(
 ) {
     val processingState by viewModel.processingState.collectAsState()
     
+    var hasCompleted by remember { mutableStateOf(false) }
+
     // Iniciar procesamiento si hay parámetros
     LaunchedEffect(params) {
         if (params != null) {
@@ -72,16 +77,29 @@ fun ProcessingScreen(
                 interval = params.interval,
                 notes = params.notes,
                 whisperMode = params.whisperMode,
-                onProgress = { _, _ -> },
-                onComplete = { _ -> }
+                onProgress = { progress, message ->
+                    // Actualizar progreso en el estado
+                },
+                onComplete = { result ->
+                    if (result.isSuccess) {
+                        hasCompleted = true
+                    }
+                }
             )
         }
     }
-    
-    // Observar completado
-    LaunchedEffect(processingState) {
-        if (processingState is ProcessingState.Completed) {
+
+    // Navegar al completar
+    LaunchedEffect(hasCompleted) {
+        if (hasCompleted) {
             onComplete()
+        }
+    }
+
+    // Manejar error
+    LaunchedEffect(processingState) {
+        if (processingState is ProcessingState.Error) {
+            // Mostrar error - por ahora solo log
         }
     }
     

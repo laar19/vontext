@@ -101,8 +101,18 @@ class VideoViewModel @Inject constructor(
         onComplete: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
-            _processingState.value = ProcessingState.Processing(0, "Iniciando...", emptyList())
-            
+            val logs = mutableListOf<String>()
+
+            fun updateState(progress: Int, message: String) {
+                _processingState.value = ProcessingState.Processing(
+                    progress = progress,
+                    message = message,
+                    logs = logs.toList()
+                )
+            }
+
+            updateState(0, "Iniciando...")
+
             if (videos.isEmpty()) {
                 _processingState.value = ProcessingState.Idle
                 onComplete(Result.failure(IllegalStateException("No hay videos para procesar")))
@@ -117,26 +127,31 @@ class VideoViewModel @Inject constructor(
                 )
 
                 if (processTogether && videos.size > 1) {
-                    // TODO: Implementar concatenación de videos
-                    // Por ahora procesamos el primer video
                     processSingleVideo(videos.first(), config, onProgress, onComplete)
                 } else {
-                    // Procesar cada video por separado
+                    val totalVideos = videos.size
                     val results = mutableListOf<Result<String>>()
+
                     for ((index, video) in videos.withIndex()) {
-                        _processingState.value = ProcessingState.Processing(
-                            progress = (index * 100) / videos.size,
-                            message = "Procesando video ${index + 1} de ${videos.size}",
-                            logs = listOf("Procesando video ${index + 1}...")
-                        )
-                        
-                        val result = processSingleVideoSync(video, config, onProgress)
+                        val baseProgress = (index * 100) / totalVideos
+                        logs.add("Procesando video ${index + 1} de $totalVideos...")
+                        updateState(baseProgress, "Procesando video ${index + 1} de $totalVideos")
+
+                        val result = processSingleVideoSync(video, config) { progress, message ->
+                            val overallProgress = baseProgress + (progress / totalVideos)
+                            if (message.isNotBlank()) {
+                                logs.add(message)
+                                if (logs.size > 50) logs.removeAt(0)
+                            }
+                            updateState(overallProgress, message)
+                            onProgress(overallProgress, message)
+                        }
                         results.add(result)
                     }
-                    
-                    // Completar con el último jobId exitoso
+
                     val lastSuccess = results.lastOrNull { it.isSuccess }
                     if (lastSuccess != null) {
+                        logs.add("Procesamiento completado")
                         _processingState.value = ProcessingState.Completed
                         onComplete(lastSuccess)
                     } else {
