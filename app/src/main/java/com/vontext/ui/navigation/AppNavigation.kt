@@ -3,7 +3,6 @@ package com.vontext.ui.navigation
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -24,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -66,10 +66,10 @@ fun VontextApp() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     val navItems = listOf(BottomNavItem.Home, BottomNavItem.History, BottomNavItem.Settings)
 
-    val selectedVideos = rememberSaveable { mutableStateListOf<Uri>() }
+    val selectedVideos = remember { mutableStateListOf<Uri>() }
 
     val videoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
+        contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         uris.forEach { uri ->
             if (uri !in selectedVideos) {
@@ -107,7 +107,7 @@ fun VontextApp() {
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = { videoPicker.launch(arrayOf("video/*")) },
+                    onClick = { videoPicker.launch("video/*") },
                     containerColor = BlueFAB,
                     contentColor = Color.White
                 ) {
@@ -123,7 +123,6 @@ fun VontextApp() {
         when (selectedTab) {
             0 -> HomeScreen(
                 selectedVideos = selectedVideos,
-                contentPadding = padding,
                 onNavigateToProcessing = { videos, processTogether, interval, notes ->
                     // TODO: Iniciar procesamiento
                 }

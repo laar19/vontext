@@ -48,7 +48,6 @@ import kotlin.random.Random
 fun HomeScreen(
     viewModel: VideoViewModel = hiltViewModel(),
     selectedVideos: MutableList<Uri>,
-    contentPadding: PaddingValues = PaddingValues(0.dp),
     onNavigateToProcessing: (List<Uri>, Boolean, Int, String?) -> Unit
 ) {
     var processTogether by remember { mutableStateOf(true) }
@@ -70,17 +69,12 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = contentPadding.calculateTopPadding() + 16.dp,
-            bottom = contentPadding.calculateBottomPadding() + 16.dp
-        ),
+        contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (selectedVideos.isNotEmpty()) {
             item {
-                SectionLabel("Videos · ${selectedVideos.size} archivos")
+                SectionLabel("Videos \u00B7 ${selectedVideos.size} archivos")
             }
 
             items(
@@ -139,7 +133,7 @@ fun HomeScreen(
         }
 
         item {
-            SectionLabel("Configuración")
+            SectionLabel("Configuraci\u00F3n")
         }
 
         item {
@@ -180,8 +174,8 @@ fun HomeScreen(
         item {
             InfoStrip(
                 items = listOf(
-                    "Usa el botón + para seleccionar videos",
-                    "Tamaño máximo 2 GB por archivo",
+                    "Usa el bot\u00F3n + para seleccionar videos",
+                    "Tama\u00F1o m\u00E1ximo 2 GB por archivo",
                     "El procesamiento puede tomar varios minutos"
                 )
             )
