@@ -3,6 +3,7 @@ package com.vontext.ui.navigation
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -122,6 +123,7 @@ fun VontextApp() {
     ) { padding ->
         when (selectedTab) {
             0 -> HomeScreen(
+                modifier = Modifier.padding(padding),
                 selectedVideos = selectedVideos,
                 onNavigateToProcessing = { videos, processTogether, interval, notes ->
                     // TODO: Iniciar procesamiento

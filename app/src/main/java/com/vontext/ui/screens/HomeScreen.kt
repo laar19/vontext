@@ -46,6 +46,7 @@ import kotlin.random.Random
 
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     viewModel: VideoViewModel = hiltViewModel(),
     selectedVideos: MutableList<Uri>,
     onNavigateToProcessing: (List<Uri>, Boolean, Int, String?) -> Unit
@@ -66,7 +67,7 @@ fun HomeScreen(
     }
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
