@@ -16,58 +16,52 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
-/**
- * Campo de texto para notas adicionales
- */
 @Composable
 fun NotesField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Pega logs, descripción del bug, contexto del agente...",
+    placeholder: String = "Pega logs, descripci\u00F3n del bug, contexto del agente...",
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+        modifier = modifier.fillMaxWidth()
     ) {
-        // Label
         Row(
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(5.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.EditNote,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
             Text(
                 text = "Notas adicionales (opcional)",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        // TextField
+
+        Spacer(modifier = Modifier.height(6.dp))
+
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             placeholder = { Text(placeholder) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .height(100.dp),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
             keyboardActions = KeyboardActions(),
-            maxLines = 4,
-            shape = MaterialTheme.shapes.medium
+            maxLines = 3,
+            shape = MaterialTheme.shapes.small
         )
     }
 }

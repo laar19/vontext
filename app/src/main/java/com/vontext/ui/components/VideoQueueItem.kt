@@ -1,5 +1,6 @@
 package com.vontext.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,9 +32,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.vontext.ui.theme.VideoThumbnail
 
-/**
- * Item de video en la cola de procesamiento
- */
 @Composable
 fun VideoQueueItem(
     name: String,
@@ -47,27 +44,22 @@ fun VideoQueueItem(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.small
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(
+            0.5.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Drag handle
-            Icon(
-                imageVector = Icons.Default.DragIndicator,
-                contentDescription = "Arrastrar para reordenar",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            
-            // Thumbnail
             Box(
                 modifier = Modifier
-                    .size(52.dp, 38.dp)
+                    .size(48.dp, 34.dp)
                     .clip(MaterialTheme.shapes.small)
                     .background(thumbnailColor),
                 contentAlignment = Alignment.Center
@@ -76,22 +68,21 @@ fun VideoQueueItem(
                     imageVector = Icons.Default.Movie,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            
-            // Info
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(1.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -101,7 +92,7 @@ fun VideoQueueItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "•",
+                        text = "\u00B7",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -112,14 +103,13 @@ fun VideoQueueItem(
                     )
                 }
             }
-            
-            // Delete button
+
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Eliminar video",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

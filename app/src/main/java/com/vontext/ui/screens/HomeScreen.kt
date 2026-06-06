@@ -1,10 +1,10 @@
 package com.vontext.ui.screens
 
 import android.net.Uri
-import kotlin.collections.MutableList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,13 +17,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.rounded.RocketLaunch
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -49,13 +48,13 @@ import kotlin.random.Random
 fun HomeScreen(
     viewModel: VideoViewModel = hiltViewModel(),
     selectedVideos: MutableList<Uri>,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onNavigateToProcessing: (List<Uri>, Boolean, Int, String?) -> Unit
 ) {
     var processTogether by remember { mutableStateOf(true) }
     var interval by remember { mutableIntStateOf(5) }
     var notes by remember { mutableStateOf("") }
-    
-    // Colores aleatorios para thumbnails (consistente por URI)
+
     val thumbnailColors = remember { mutableMapOf<String, Color>() }
     fun getThumbnailColor(uri: Uri): Color {
         return thumbnailColors.getOrPut(uri.toString()) {
@@ -66,147 +65,126 @@ fun HomeScreen(
             Color(r, g, b)
         }
     }
-    
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = contentPadding.calculateTopPadding() + 16.dp,
+            bottom = contentPadding.calculateBottomPadding() + 16.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-            // Top bar title (solo cuando hay videos)
-            if (selectedVideos.isNotEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${selectedVideos.size} videos listos",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-            
-            // Cola de videos
-            if (selectedVideos.isNotEmpty()) {
-                item {
-                    SectionLabel("Videos · ${selectedVideos.size} archivos")
-                }
-                
-                items(
-                    items = selectedVideos,
-                    key = { it.toString() }
-                ) { uri ->
-                    val random = Random(uri.toString().hashCode())
-                    VideoQueueItem(
-                        name = uri.path?.substringAfterLast('/') ?: "Video",
-                        size = "~${random.nextInt(50, 200)} MB",
-                        duration = "${random.nextInt(1, 10)}:${random.nextInt(10, 60).toString().padStart(2, '0')}",
-                        onRemove = { selectedVideos.remove(uri) },
-                        thumbnailColor = getThumbnailColor(uri)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                
-                item {
-                    // Botón procesar
-                    androidx.compose.material3.Button(
-                        onClick = {
-                            onNavigateToProcessing(
-                                selectedVideos.toList(),
-                                processTogether,
-                                interval,
-                                notes.ifBlank { null }
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = GreenVontext
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.RocketLaunch,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Procesar ${selectedVideos.size} videos · ~${selectedVideos.size * 3} min",
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Modo de procesamiento
-                    SectionLabel("Modo de procesamiento")
-                    ModeChipRow(
-                        processTogether = processTogether,
-                        onModeChange = { processTogether = it }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-            
-            // Configuración
+        if (selectedVideos.isNotEmpty()) {
             item {
-                SectionLabel("Configuración")
+                SectionLabel("Videos · ${selectedVideos.size} archivos")
             }
-            
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = MaterialTheme.shapes.large,
-                    shadowElevation = 2.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        StepperBlock(
-                            value = interval,
-                            onValueChange = { interval = it }
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        androidx.compose.material3.Divider(
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        NotesField(
-                            value = notes,
-                            onValueChange = { notes = it }
-                        )
-                    }
-                }
-            }
-            
-            // Info strip
-            item {
-                InfoStrip(
-                    items = listOf(
-                        "Usa el botón circular inferior para subir archivos",
-                        "Tamaño máximo 2 GB por archivo",
-                        "El procesamiento puede tomar varios minutos"
-                    )
+
+            items(
+                items = selectedVideos,
+                key = { it.toString() }
+            ) { uri ->
+                val random = Random(uri.toString().hashCode())
+                VideoQueueItem(
+                    name = uri.path?.substringAfterLast('/') ?: "Video",
+                    size = "~${random.nextInt(50, 200)} MB",
+                    duration = "${random.nextInt(1, 10)}:${random.nextInt(10, 60).toString().padStart(2, '0')}",
+                    onRemove = { selectedVideos.remove(uri) },
+                    thumbnailColor = getThumbnailColor(uri)
                 )
             }
-            
-            // Spacer para FAB
+
             item {
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+
+                androidx.compose.material3.Button(
+                    onClick = {
+                        onNavigateToProcessing(
+                            selectedVideos.toList(),
+                            processTogether,
+                            interval,
+                            notes.ifBlank { null }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = GreenVontext
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PlayCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Procesar ${selectedVideos.size} videos",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                SectionLabel("Modo de procesamiento")
+                ModeChipRow(
+                    processTogether = processTogether,
+                    onModeChange = { processTogether = it }
+                )
             }
         }
+
+        item {
+            SectionLabel("Configuración")
+        }
+
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium,
+                border = androidx.compose.foundation.BorderStroke(
+                    0.5.dp,
+                    MaterialTheme.colorScheme.outlineVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    StepperBlock(
+                        value = interval,
+                        onValueChange = { interval = it }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    androidx.compose.material3.Divider(
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    NotesField(
+                        value = notes,
+                        onValueChange = { notes = it }
+                    )
+                }
+            }
+        }
+
+        item {
+            InfoStrip(
+                items = listOf(
+                    "Usa el botón + para seleccionar videos",
+                    "Tamaño máximo 2 GB por archivo",
+                    "El procesamiento puede tomar varios minutos"
+                )
+            )
+        }
+    }
 }

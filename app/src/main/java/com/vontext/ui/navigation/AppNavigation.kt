@@ -3,7 +3,8 @@ package com.vontext.ui.navigation
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -29,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
 import com.vontext.ui.screens.HistoryScreen
 import com.vontext.ui.screens.HomeScreen
 import com.vontext.ui.screens.SettingsScreen
@@ -66,12 +66,10 @@ fun VontextApp() {
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     val navItems = listOf(BottomNavItem.Home, BottomNavItem.History, BottomNavItem.Settings)
 
-    // Estado compartido para videos seleccionados
     val selectedVideos = rememberSaveable { mutableStateListOf<Uri>() }
 
-    // Video picker
     val videoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
+        contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         uris.forEach { uri ->
             if (uri !in selectedVideos) {
@@ -109,7 +107,7 @@ fun VontextApp() {
         floatingActionButton = {
             if (selectedTab == 0) {
                 FloatingActionButton(
-                    onClick = { videoPicker.launch("video/*") },
+                    onClick = { videoPicker.launch(arrayOf("video/*")) },
                     containerColor = BlueFAB,
                     contentColor = Color.White
                 ) {
@@ -125,6 +123,7 @@ fun VontextApp() {
         when (selectedTab) {
             0 -> HomeScreen(
                 selectedVideos = selectedVideos,
+                contentPadding = padding,
                 onNavigateToProcessing = { videos, processTogether, interval, notes ->
                     // TODO: Iniciar procesamiento
                 }
