@@ -116,13 +116,8 @@ fun VontextTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Status bar verde para modo light, oscuro para dark mode
-            window.statusBarColor = if (darkTheme) {
-                Color(0xFF121212).toArgb()
-            } else {
-                GreenVontext.toArgb()
-            }
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 

@@ -395,7 +395,10 @@ fun SettingsScreen(
                     }
                     else -> {
                         androidx.compose.material3.TextButton(
-                            onClick = { showModelDownloadDialog = false }
+                            onClick = {
+                                videoViewModel.deletePartialDownload()
+                                showModelDownloadDialog = false
+                            }
                         ) {
                             Text("Cancelar")
                         }

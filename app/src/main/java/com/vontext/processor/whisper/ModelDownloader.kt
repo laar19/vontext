@@ -65,23 +65,28 @@ class ModelDownloader @Inject constructor(
                     return@retryWithBackoff Result.failure(Exception("Sin cuerpo de respuesta"))
                 }
 
-                // Usar el tamaño conocido del modelo como total (evita fluctuaciones
-                // cuando el servidor no envía Content-Length o en reintentos con Range)
                 val modelTotal = model.sizeMb * 1024L * 1024L
-                val totalBytes = modelTotal.coerceAtLeast(rangeStart)
-                val outputStream = FileOutputStream(tempFile, rangeStart > 0)
-                body.byteStream().use { input ->
-                    val buffer = ByteArray(8192)
-                    var bytesRead: Int
-                    var totalRead = rangeStart
+                val contentLen = body.contentLength()
+                val totalBytes = if (rangeStart > 0L) {
+                    modelTotal.coerceAtLeast(rangeStart)
+                } else if (contentLen > 0L) {
+                    contentLen
+                } else {
+                    modelTotal
+                }
+                FileOutputStream(tempFile, rangeStart > 0).use { outputStream ->
+                    body.byteStream().use { input ->
+                        val buffer = ByteArray(8192)
+                        var bytesRead: Int
+                        var totalRead = rangeStart
 
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
-                        totalRead += bytesRead
-                        progressCallback?.invoke(totalRead, totalBytes)
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            outputStream.write(buffer, 0, bytesRead)
+                            totalRead += bytesRead
+                            progressCallback?.invoke(totalRead, totalBytes)
+                        }
                     }
                 }
-                outputStream.close()
 
                 if (!tempFile.renameTo(modelFile)) {
                     modelFile.delete()
@@ -111,6 +116,14 @@ class ModelDownloader @Inject constructor(
             }
         }
         return Result.failure(lastError ?: Exception("Descarga fallida después de $maxRetries intentos"))
+    }
+
+    fun deletePartialDownload(model: WhisperModel) {
+        val modelDir = File(context.filesDir, "whisper_models")
+        val tempFile = File(modelDir, "${model.filename}.bin.downloading")
+        if (tempFile.exists()) {
+            tempFile.delete()
+        }
     }
 
     private fun getModelUrl(model: WhisperModel): String {

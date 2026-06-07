@@ -4,6 +4,7 @@ import com.vontext.domain.model.ProcessingConfig
 import com.vontext.processor.whisper.LocalWhisperTranscriber
 import com.vontext.processor.whisper.RemoteWhisperTranscriber
 import com.vontext.processor.whisper.WhisperMode
+import com.vontext.processor.whisper.WhisperModel
 import com.vontext.util.TimestampFormatter
 import java.io.File
 import javax.inject.Inject
@@ -38,6 +39,12 @@ class VideoProcessor @Inject constructor(
                 when (config.whisperMode) {
                     WhisperMode.LOCAL_TINY, WhisperMode.LOCAL_BASE,
                     WhisperMode.LOCAL_SMALL, WhisperMode.LOCAL_MEDIUM -> {
+                        progressCallback?.invoke(38, "Cargando modelo Whisper...")
+                        localWhisperTranscriber.loadModel(whisperModeToModel(config.whisperMode))
+                            .onFailure { e ->
+                                android.util.Log.e("VideoProcessor", "Error cargando modelo Whisper", e)
+                                return@process Result.failure(e)
+                            }
                         progressCallback?.invoke(40, "Transcribiendo audio (local)...")
                         localWhisperTranscriber.transcribe(videoFile, outputDir, progressCallback)
                             .getOrNull()
@@ -74,5 +81,13 @@ class VideoProcessor @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun whisperModeToModel(mode: WhisperMode): WhisperModel = when (mode) {
+        WhisperMode.LOCAL_TINY -> WhisperModel.TINY
+        WhisperMode.LOCAL_BASE -> WhisperModel.BASE
+        WhisperMode.LOCAL_SMALL -> WhisperModel.SMALL
+        WhisperMode.LOCAL_MEDIUM -> WhisperModel.MEDIUM
+        else -> WhisperModel.SMALL
     }
 }

@@ -101,6 +101,10 @@ class VideoViewModel @Inject constructor(
         _modelDownloadProgress.value = null
     }
 
+    fun deletePartialDownload() {
+        modelDownloader.deletePartialDownload(WhisperModel.SMALL)
+    }
+
     fun processVideos(
         videos: List<Uri>,
         processTogether: Boolean,

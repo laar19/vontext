@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.RadioButtonChecked
@@ -129,220 +129,205 @@ fun ProcessingScreen(
             )
             
             // Contenido scrolleable
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    .background(MaterialTheme.colorScheme.background)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
             ) {
                 // Etapas
-                item {
-                    SectionLabel("Etapas")
-                }
-                
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = MaterialTheme.shapes.large,
-                        shadowElevation = 2.dp
-                    ) {
-                        Column {
-                            StepItem(
-                                stage = processingStage(
-                                    type = com.vontext.ui.components.ProcessingStageType.Carga,
-                                    status = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 5 -> 
-                                            com.vontext.ui.components.StageStatus.Completed
-                                        else -> com.vontext.ui.components.StageStatus.Pending
+                SectionLabel("Etapas")
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.large,
+                    shadowElevation = 2.dp
+                ) {
+                    Column {
+                        StepItem(
+                            stage = processingStage(
+                                type = com.vontext.ui.components.ProcessingStageType.Carga,
+                                status = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 5 -> 
+                                        com.vontext.ui.components.StageStatus.Completed
+                                    else -> com.vontext.ui.components.StageStatus.Pending
+                                }
+                            )
+                        )
+
+                        androidx.compose.material3.Divider(
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        StepItem(
+                            stage = processingStage(
+                                type = com.vontext.ui.components.ProcessingStageType.Frames,
+                                detail = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 15 -> "47 frames · 5s/frame"
+                                    else -> null
+                                },
+                                status = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 30 -> 
+                                        com.vontext.ui.components.StageStatus.Completed
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 15 -> 
+                                        com.vontext.ui.components.StageStatus.Active
+                                    else -> com.vontext.ui.components.StageStatus.Pending
+                                }
+                            )
+                        )
+
+                        androidx.compose.material3.Divider(
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        StepItem(
+                            stage = processingStage(
+                                type = com.vontext.ui.components.ProcessingStageType.Transcripcion,
+                                detail = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> {
+                                        val isLocal = params?.whisperMode?.name?.startsWith("LOCAL") == true
+                                        if (isLocal) "Whisper Local (${params?.whisperMode?.name?.removePrefix("LOCAL_")?.lowercase() ?: "small"}) · procesando segmento..."
+                                        else "Whisper API (${params?.whisperMode?.name?.removePrefix("REMOTE_")?.lowercase() ?: "openai"}) · procesando..."
                                     }
-                                )
+                                    else -> null
+                                },
+                                status = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 70 -> 
+                                        com.vontext.ui.components.StageStatus.Completed
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> 
+                                        com.vontext.ui.components.StageStatus.Active
+                                    else -> com.vontext.ui.components.StageStatus.Pending
+                                }
                             )
-                            
-                            androidx.compose.material3.Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        androidx.compose.material3.Divider(
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        StepItem(
+                            stage = processingStage(
+                                type = com.vontext.ui.components.ProcessingStageType.Pdf,
+                                status = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 90 -> 
+                                        com.vontext.ui.components.StageStatus.Completed
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 70 -> 
+                                        com.vontext.ui.components.StageStatus.Pending
+                                    else -> com.vontext.ui.components.StageStatus.Pending
+                                }
                             )
-                            
-                            StepItem(
-                                stage = processingStage(
-                                    type = com.vontext.ui.components.ProcessingStageType.Frames,
-                                    detail = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 15 -> "47 frames · 5s/frame"
-                                        else -> null
-                                    },
-                                    status = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 30 -> 
-                                            com.vontext.ui.components.StageStatus.Completed
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 15 -> 
-                                            com.vontext.ui.components.StageStatus.Active
-                                        else -> com.vontext.ui.components.StageStatus.Pending
-                                    }
-                                )
+                        )
+
+                        androidx.compose.material3.Divider(
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+
+                        StepItem(
+                            stage = processingStage(
+                                type = com.vontext.ui.components.ProcessingStageType.Zip,
+                                status = when {
+                                    processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 100 -> 
+                                        com.vontext.ui.components.StageStatus.Completed
+                                    else -> com.vontext.ui.components.StageStatus.Pending
+                                }
                             )
-                            
-                            androidx.compose.material3.Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                            
-                            StepItem(
-                                stage = processingStage(
-                                    type = com.vontext.ui.components.ProcessingStageType.Transcripcion,
-                                    detail = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> {
-                                            val isLocal = params?.whisperMode?.name?.startsWith("LOCAL") == true
-                                            if (isLocal) "Whisper Local (${params?.whisperMode?.name?.removePrefix("LOCAL_")?.lowercase() ?: "small"}) · procesando segmento..."
-                                            else "Whisper API (${params?.whisperMode?.name?.removePrefix("REMOTE_")?.lowercase() ?: "openai"}) · procesando..."
-                                        }
-                                        else -> null
-                                    },
-                                    status = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 70 -> 
-                                            com.vontext.ui.components.StageStatus.Completed
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> 
-                                            com.vontext.ui.components.StageStatus.Active
-                                        else -> com.vontext.ui.components.StageStatus.Pending
-                                    }
-                                )
-                            )
-                            
-                            androidx.compose.material3.Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                            
-                            StepItem(
-                                stage = processingStage(
-                                    type = com.vontext.ui.components.ProcessingStageType.Pdf,
-                                    status = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 90 -> 
-                                            com.vontext.ui.components.StageStatus.Completed
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 70 -> 
-                                            com.vontext.ui.components.StageStatus.Pending
-                                        else -> com.vontext.ui.components.StageStatus.Pending
-                                    }
-                                )
-                            )
-                            
-                            androidx.compose.material3.Divider(
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
-                            
-                            StepItem(
-                                stage = processingStage(
-                                    type = com.vontext.ui.components.ProcessingStageType.Zip,
-                                    status = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 100 -> 
-                                            com.vontext.ui.components.StageStatus.Completed
-                                        else -> com.vontext.ui.components.StageStatus.Pending
-                                    }
-                                )
-                            )
-                        }
+                        )
                     }
                 }
-                
+
                 // Log en vivo
-                item {
-                    SectionLabel("Log en vivo")
-                }
-                
-                item {
-                    TerminalLog(
-                        logs = when (processingState) {
-                            is ProcessingState.Processing -> (processingState as ProcessingState.Processing).logs
-                            else -> emptyList()
-                        }
-                    )
-                }
-                
+                SectionLabel("Log en vivo")
+
+                TerminalLog(
+                    logs = when (processingState) {
+                        is ProcessingState.Processing -> (processingState as ProcessingState.Processing).logs
+                        else -> emptyList()
+                    }
+                )
+
                 // Cola dinámica con nombres reales
-                item {
-                    SectionLabel("Cola")
-                }
+                SectionLabel("Cola")
 
                 val videoNames = params?.videos?.map { uri ->
                     uri.path?.substringAfterLast('/') ?: "Video ${uri.hashCode()}"
                 } ?: emptyList()
 
                 if (videoNames.isNotEmpty()) {
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = MaterialTheme.shapes.large
-                        ) {
-                            Column {
-                                videoNames.forEachIndexed { index, name ->
-                                    val isActive = index == 0
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isActive) Icons.Default.RadioButtonChecked else Icons.Default.RadioButtonUnchecked,
-                                            contentDescription = null,
-                                            tint = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Text(
-                                            text = name,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            text = if (isActive) "En proceso" else "En cola",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                    if (index < videoNames.size - 1) {
-                                        androidx.compose.material3.Divider(
-                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                                            modifier = Modifier.padding(start = 48.dp)
-                                        )
-                                    }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.large
+                    ) {
+                        Column {
+                            videoNames.forEachIndexed { index, name ->
+                                val isActive = index == 0
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (isActive) Icons.Default.RadioButtonChecked else Icons.Default.RadioButtonUnchecked,
+                                        contentDescription = null,
+                                        tint = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = if (isActive) "En proceso" else "En cola",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                if (index < videoNames.size - 1) {
+                                    androidx.compose.material3.Divider(
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                        modifier = Modifier.padding(start = 48.dp)
+                                    )
                                 }
                             }
                         }
                     }
                 }
-                
+
                 // Botón cancelar
-                item {
-                    Button(
-                        onClick = { /* TODO: Cancelar procesamiento */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Error)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Cancel,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Cancelar procesamiento",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Error
-                        )
-                    }
+                Button(
+                    onClick = { /* TODO: Cancelar procesamiento */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(42.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Error)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Cancel,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Cancelar procesamiento",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Error
+                    )
                 }
-                
+
                 // Spacer final
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
