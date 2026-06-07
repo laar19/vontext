@@ -51,6 +51,10 @@ class VideoProcessor @Inject constructor(
                 }
             } else null
 
+            if (transcriptionResult == null && videoInfo.hasAudio) {
+                android.util.Log.w("VideoProcessor", "Transcripcion nula para ${videoFile.name} (whisperMode=${config.whisperMode})")
+            }
+
             progressCallback?.invoke(70, "Generando PDF...")
             pdfGenerator.generate(
                 outputDir = outputDir,
