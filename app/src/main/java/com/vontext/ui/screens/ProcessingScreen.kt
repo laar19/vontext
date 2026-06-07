@@ -251,73 +251,59 @@ fun ProcessingScreen(
                     )
                 }
                 
-                // Cola
+                // Cola dinámica con nombres reales
                 item {
                     SectionLabel("Cola")
                 }
-                
-                item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = MaterialTheme.shapes.large,
-                        shadowElevation = 2.dp
-                    ) {
-                        Column {
-                            // Video actual
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.RadioButtonChecked,
-                                    contentDescription = null,
-                                    tint = GreenVontext,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "video_actual.mp4",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = "En proceso",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = GreenVontext,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                            
-                            // Videos en cola (ejemplo estático)
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.RadioButtonUnchecked,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "video_pendiente_1.mp4",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = "En cola",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+
+                val videoNames = params?.videos?.map { uri ->
+                    uri.path?.substringAfterLast('/') ?: "Video ${uri.hashCode()}"
+                } ?: emptyList()
+
+                if (videoNames.isNotEmpty()) {
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = MaterialTheme.shapes.large
+                        ) {
+                            Column {
+                                videoNames.forEachIndexed { index, name ->
+                                    val isActive = index == 0
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isActive) Icons.Default.RadioButtonChecked else Icons.Default.RadioButtonUnchecked,
+                                            contentDescription = null,
+                                            tint = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = name,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = if (isActive) FontWeight.Medium else FontWeight.Normal,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            text = if (isActive) "En proceso" else "En cola",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (isActive) GreenVontext else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                    if (index < videoNames.size - 1) {
+                                        androidx.compose.material3.Divider(
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                            modifier = Modifier.padding(start = 48.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

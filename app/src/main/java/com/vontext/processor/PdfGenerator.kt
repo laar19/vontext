@@ -39,7 +39,8 @@ class PdfGenerator @Inject constructor() {
     ): Result<File> {
         return withContext(Dispatchers.IO) {
             try {
-                val pdfFile = File(outputDir, "report.pdf")
+                val baseName = videoFilename.substringBeforeLast('.').replace(Regex("[^a-zA-Z0-9_\\-]"), "_")
+                val pdfFile = File(outputDir, "${baseName}.pdf")
                 val document = PdfDocument()
 
                 var pageNum = 0

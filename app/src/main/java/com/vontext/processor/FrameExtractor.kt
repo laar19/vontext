@@ -48,7 +48,7 @@ class FrameExtractor @Inject constructor(
 
             while (currentTimeMs < durationMs && frameNum <= Constants.MAX_FRAME_COUNT) {
                 val bitmap = retriever.getFrameAtTime(
-                    currentTimeMs,
+                    currentTimeMs * 1000,
                     MediaMetadataRetriever.OPTION_CLOSEST
                 )
                 if (bitmap != null) {
@@ -106,7 +106,7 @@ class FrameExtractor @Inject constructor(
             for ((index, timeSec) in limited.withIndex()) {
                 val timeMs = (timeSec * 1000).toLong()
                 val bitmap = retriever.getFrameAtTime(
-                    timeMs,
+                    timeMs * 1000,
                     MediaMetadataRetriever.OPTION_CLOSEST
                 )
                 if (bitmap != null) {

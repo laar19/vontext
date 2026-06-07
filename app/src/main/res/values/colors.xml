@@ -53,6 +53,6 @@
     <color name="upload_background">#E8F5EE</color>
     <color name="upload_icon">#1A6B4A</color>
     
-    <!-- Launcher icon background -->
-    <color name="ic_launcher_background">#1A6B4A</color>
+    <!-- Launcher icon background (transparent = sin fondo) -->
+    <color name="ic_launcher_background">#00000000</color>
 </resources>
