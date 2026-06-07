@@ -79,6 +79,13 @@ fun SettingsScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showModelDownloadDialog by remember { mutableStateOf(false) }
     
+    // Detectar cuando la descarga se completa para mostrar estado de éxito
+    androidx.compose.runtime.LaunchedEffect(isModelDownloaded) {
+        if (isModelDownloaded && !justDownloadedModel) {
+            justDownloadedModel = true
+        }
+    }
+    
     var apiKey by remember { mutableStateOf("") }
     var endpoint by remember { mutableStateOf("https://api.openai.com/v1") }
     var model by remember { mutableStateOf("whisper-1") }
@@ -359,7 +366,6 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             videoViewModel.downloadModel()
-                            justDownloadedModel = true
                         }
                     ) {
                         Text("Descargar")

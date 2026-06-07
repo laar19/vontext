@@ -138,8 +138,8 @@ Java_com_videocontextbot_processor_whisper_WhisperCppWrapper_transcribe(
         jstring segmentText = env->NewStringUTF(text);
         jobject segment = env->NewObject(
             segmentClass, segmentInit,
-            static_cast<float>(t0) / 100.0f,
-            static_cast<float>(t1) / 100.0f,
+            static_cast<float>(t0) / 1000.0f,
+            static_cast<float>(t1) / 1000.0f,
             segmentText
         );
         env->CallBooleanMethod(segmentList, arrayListAdd, segment);

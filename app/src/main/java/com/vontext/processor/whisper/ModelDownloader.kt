@@ -65,10 +65,10 @@ class ModelDownloader @Inject constructor(
                     return@retryWithBackoff Result.failure(Exception("Sin cuerpo de respuesta"))
                 }
 
-                val totalBytes = rangeStart + (
-                    body.contentLength().coerceAtLeast(0)
-                    )
-
+                // Usar el tamaño conocido del modelo como total (evita fluctuaciones
+                // cuando el servidor no envía Content-Length o en reintentos con Range)
+                val modelTotal = model.sizeMb * 1024L * 1024L
+                val totalBytes = modelTotal.coerceAtLeast(rangeStart)
                 val outputStream = FileOutputStream(tempFile, rangeStart > 0)
                 body.byteStream().use { input ->
                     val buffer = ByteArray(8192)
