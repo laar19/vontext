@@ -189,7 +189,11 @@ fun ProcessingScreen(
                                 stage = processingStage(
                                     type = com.vontext.ui.components.ProcessingStageType.Transcripcion,
                                     detail = when {
-                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> "Whisper API · segmento 8/12..."
+                                        processingState is ProcessingState.Processing && (processingState as ProcessingState.Processing).progress >= 40 -> {
+                                            val isLocal = params?.whisperMode?.name?.startsWith("LOCAL") == true
+                                            if (isLocal) "Whisper Local (${params?.whisperMode?.name?.removePrefix("LOCAL_")?.lowercase() ?: "small"}) · procesando segmento..."
+                                            else "Whisper API (${params?.whisperMode?.name?.removePrefix("REMOTE_")?.lowercase() ?: "openai"}) · procesando..."
+                                        }
                                         else -> null
                                     },
                                     status = when {

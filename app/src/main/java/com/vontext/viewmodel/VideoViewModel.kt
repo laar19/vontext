@@ -68,12 +68,15 @@ class VideoViewModel @Inject constructor(
     private val _isModelDownloaded = MutableStateFlow(localWhisperTranscriber.isModelDownloaded(WhisperModel.SMALL))
     val isModelDownloaded: StateFlow<Boolean> = _isModelDownloaded.asStateFlow()
 
+    private var downloadJob: kotlinx.coroutines.Job? = null
+
     fun checkModelDownloadStatus() {
         _isModelDownloaded.value = localWhisperTranscriber.isModelDownloaded(WhisperModel.SMALL)
     }
 
     fun downloadModel() {
-        viewModelScope.launch {
+        downloadJob?.cancel()
+        downloadJob = viewModelScope.launch {
             _isDownloadingModel.value = true
             modelDownloader.downloadModel(
                 model = WhisperModel.SMALL,
@@ -89,6 +92,13 @@ class VideoViewModel @Inject constructor(
                 _modelDownloadProgress.value = null
             }
         }
+    }
+
+    fun cancelDownload() {
+        downloadJob?.cancel()
+        downloadJob = null
+        _isDownloadingModel.value = false
+        _modelDownloadProgress.value = null
     }
 
     fun processVideos(

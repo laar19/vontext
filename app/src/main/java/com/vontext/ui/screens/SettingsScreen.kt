@@ -367,11 +367,33 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = { showModelDownloadDialog = false },
-                    enabled = !isDownloadingModel
-                ) {
-                    Text("Cancelar")
+                when {
+                    justDownloadedModel -> {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                // TODO: Implementar eliminar modelo
+                                showModelDownloadDialog = false
+                            }
+                        ) {
+                            Text("Eliminar")
+                        }
+                    }
+                    isDownloadingModel -> {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                videoViewModel.cancelDownload()
+                            }
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
+                    else -> {
+                        androidx.compose.material3.TextButton(
+                            onClick = { showModelDownloadDialog = false }
+                        ) {
+                            Text("Cancelar")
+                        }
+                    }
                 }
             }
         )

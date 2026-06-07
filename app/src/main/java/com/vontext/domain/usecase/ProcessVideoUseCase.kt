@@ -63,10 +63,15 @@ class ProcessVideoUseCase @Inject constructor(
 
                 result.fold(
                     onSuccess = { zipFile ->
-                        val pdfFile = File(jobDir, "report.pdf")
+                        val baseName = videoFile.nameWithoutExtension.replace(Regex("[^a-zA-Z0-9_\\-]"), "_")
+                        val pdfFile = File(jobDir, "${baseName}.pdf")
                         jobRepository.updateStatus(jobId, JobStatus.COMPLETED)
                         jobRepository.updateProgress(jobId, 100, "Completado")
                         jobRepository.updateOutputPaths(jobId, pdfFile.absolutePath, zipFile.absolutePath)
+                        val validPaths = pdfFile.exists() && zipFile.exists()
+                        if (!validPaths) {
+                            android.util.Log.w("ProcessVideoUseCase", "Output paths missing: pdf=${pdfFile.exists()}, zip=${zipFile.exists()}")
+                        }
                         Result.success(jobId)
                     },
                     onFailure = { error ->

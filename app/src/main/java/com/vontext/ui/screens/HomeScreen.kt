@@ -212,8 +212,11 @@ fun HomeScreen(
             item {
                 Button(
                     onClick = {
-                        // Verificar si hay modelo configurado
-                        if (!isModelDownloaded && !hasApiKey) {
+                        val isLocalMode = currentMode.name.startsWith("LOCAL")
+                        if (isLocalMode && !isModelDownloaded) {
+                            showModelDialog = true
+                            pendingProcess = true
+                        } else if (!isModelDownloaded && !hasApiKey) {
                             showModelDialog = true
                             pendingProcess = true
                         } else {
@@ -272,6 +275,7 @@ private fun ModeSelector(
         else -> "No configurado"
     }
     val subtitle = when {
+        currentMode.name.startsWith("LOCAL") && !isModelDownloaded -> "No descargado - ve a Ajustes"
         isModelDownloaded && hasApiKey -> "Local + API disponibles"
         isModelDownloaded -> "Solo local disponible"
         hasApiKey -> "Solo API disponible"
